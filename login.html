@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In – JobConnect Recruitment Platform</title>
+  <!-- Tailwind CSS CDN for Standalone Browser Usage -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    * {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.25; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.05); }
+    }
+    .glow-bg {
+      animation: pulseGlow 6s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- ================= TOP NAV BAR ================= -->
+  <header class="w-full bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+    <a href="./index.html" class="flex items-center gap-3 group">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <div>
+        <span class="text-lg font-extrabold tracking-tight bg-gradient-to-r from-slate-900 to-indigo-700 bg-clip-text text-transparent">
+          JobConnect
+        </span>
+        <span class="block text-[9px] font-bold text-indigo-700 tracking-wider uppercase -mt-1">
+          Enterprise Auth Guard
+        </span>
+      </div>
+    </a>
+
+    <div class="flex items-center gap-3 text-xs">
+      <span class="text-slate-500 hidden sm:inline">Need to explore jobs first?</span>
+      <a href="./index.html" class="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        Back to Portal
+      </a>
+    </div>
+  </header>
+
+  <!-- ================= MAIN AUTH SECTION (SPLIT SCREEN) ================= -->
+  <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-10">
+    <div class="max-w-5xl w-full bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      
+      <!-- ================= LEFT COLUMN: HERO SHOWCASE & TESTIMONIAL ================= -->
+      <div class="lg:col-span-5 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-600/30 blur-3xl glow-bg pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-purple-600/25 blur-3xl glow-bg pointer-events-none"></div>
+
+        <div class="relative z-10 space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[11px] font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            Unified Recruitment Ecosystem
+          </div>
+
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+            Connecting Ambition with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-sky-300 to-teal-200">Opportunity</span>.
+          </h2>
+
+          <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+            One secure gateway for Job Seekers to land high-impact careers, HRs to recruit verified talent, and Administrators to monitor operations.
+          </p>
+
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center gap-3 text-xs text-slate-200">
+              <span class="w-6 h-6 rounded-lg bg-indigo-600/40 text-indigo-300 flex items-center justify-center font-bold">✓</span>
+              <span>1-Click Fast Track Applications & Resume Vault</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-200">
+              <span class="w-6 h-6 rounded-lg bg-indigo-600/40 text-indigo-300 flex items-center justify-center font-bold">✓</span>
+              <span>Live 5-Stage Candidate Status Stepper</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-200">
+              <span class="w-6 h-6 rounded-lg bg-indigo-600/40 text-indigo-300 flex items-center justify-center font-bold">✓</span>
+              <span>Admin Verified Vacancies & Encrypted JWT Auth</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative z-10 mt-8 pt-6 border-t border-slate-800">
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-sm">
+            <div class="flex items-center gap-1 text-amber-400 text-xs mb-1.5">
+              ★★★★★
+            </div>
+            <p class="text-xs text-slate-300 italic leading-relaxed">
+              "JobConnect streamlined our hiring at ABC Technologies. Reviewing candidates and updating stages in one place cut our time-to-hire by 60%."
+            </p>
+            <div class="mt-3 flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
+                PS
+              </div>
+              <div>
+                <p class="text-xs font-bold text-white leading-tight">Priya Sharma</p>
+                <p class="text-[10px] text-slate-400 leading-none">Lead Technical Recruiter, ABC Tech</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= RIGHT COLUMN: INTERACTIVE AUTH FORM ================= -->
+      <div class="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center">
+        
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+          <div class="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
+            <button onclick="setAuthMode('login')" id="tabLogin" class="px-5 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-indigo-600">
+              Sign In
+            </button>
+            <button onclick="setAuthMode('register')" id="tabRegister" class="px-5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+              Create Account
+            </button>
+          </div>
+
+          <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">Role-Based Access Control</span>
+        </div>
+
+        <!-- 1-CLICK DEMO TEST ACCOUNTS BAR -->
+        <div class="mb-6 p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold text-indigo-950 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path></svg>
+              Quick Test: Fill Demo Credentials
+            </span>
+            <span class="text-[10px] text-indigo-600 font-semibold">1-Click Auto Fill</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="fillDemoCredentials('user')" class="p-2 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-sm text-left transition group">
+              <span class="block text-[10px] font-bold text-indigo-700 group-hover:text-indigo-900">👤 Candidate</span>
+              <span class="block text-[9px] text-slate-500 truncate">ankit.dev@example.com</span>
+            </button>
+            <button onclick="fillDemoCredentials('hr')" class="p-2 rounded-xl bg-white border border-purple-100 hover:border-purple-300 hover:shadow-sm text-left transition group">
+              <span class="block text-[10px] font-bold text-purple-700 group-hover:text-purple-900">💼 Recruiter</span>
+              <span class="block text-[9px] text-slate-500 truncate">priya.hr@abctech.com</span>
+            </button>
+            <button onclick="fillDemoCredentials('admin')" class="p-2 rounded-xl bg-white border border-rose-100 hover:border-rose-300 hover:shadow-sm text-left transition group">
+              <span class="block text-[10px] font-bold text-rose-700 group-hover:text-rose-900">🛡️ Admin</span>
+              <span class="block text-[9px] text-slate-500 truncate">admin@jobconnect.io</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- FORM 1: SIGN IN -->
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-4 text-xs">
+          
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5">Sign in as:</label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="loginRole" value="seeker" checked class="peer sr-only">
+                <div class="p-2 rounded-xl border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 text-center font-bold text-slate-700 peer-checked:text-indigo-700 transition">
+                  Job Seeker
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="loginRole" value="hr" class="peer sr-only">
+                <div class="p-2 rounded-xl border border-slate-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 text-center font-bold text-slate-700 peer-checked:text-purple-700 transition">
+                  HR Recruiter
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="loginRole" value="admin" class="peer sr-only">
+                <div class="p-2 rounded-xl border border-slate-200 peer-checked:border-rose-600 peer-checked:bg-rose-50 text-center font-bold text-slate-700 peer-checked:text-rose-700 transition">
+                  Super Admin
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206"></path></svg>
+              </span>
+              <input type="email" id="loginEmail" required placeholder="name@company.com" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-bold text-slate-700">Password</label>
+              <button type="button" onclick="triggerForgotPassword()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800">Forgot password?</button>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              </span>
+              <input type="password" id="loginPassword" required placeholder="••••••••••••" class="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+              <button type="button" onclick="togglePasswordVisibility('loginPassword')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-600 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="rememberMe" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span>Keep me signed in for 30 days</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnSubmitLogin" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+            <span>Sign In to JobConnect</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+        </form>
+
+        <!-- FORM 2: CREATE ACCOUNT (REGISTER) -->
+        <form id="registerForm" onsubmit="handleRegisterSubmit(event)" class="hidden space-y-3.5 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">I want to register as:</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="regRole" value="user" checked onchange="toggleRegCompanyInput()" class="peer sr-only">
+                <div class="p-2 rounded-xl border border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 text-center font-bold text-slate-700 peer-checked:text-indigo-700 transition">
+                  👤 Job Seeker (Candidate)
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="regRole" value="hr" onchange="toggleRegCompanyInput()" class="peer sr-only">
+                <div class="p-2 rounded-xl border border-slate-200 peer-checked:border-purple-600 peer-checked:bg-purple-50 text-center font-bold text-slate-700 peer-checked:text-purple-700 transition">
+                  💼 HR / Recruiter
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Full Legal Name *</label>
+            <input type="text" id="regName" required placeholder="e.g. Rahul Sharma" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+
+          <div id="regCompanyField" class="hidden">
+            <label class="block font-bold text-slate-700 mb-1">Company / Organization *</label>
+            <input type="text" id="regCompany" placeholder="e.g. Acme Technologies Inc." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Email Address *</label>
+            <input type="email" id="regEmail" required placeholder="rahul@example.com" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Password *</label>
+              <input type="password" id="regPassword" required placeholder="Min 6 characters" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Confirm Password *</label>
+              <input type="password" id="regConfirmPassword" required placeholder="Repeat password" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+          </div>
+
+          <label class="flex items-start gap-2 cursor-pointer text-[11px] text-slate-600 pt-1">
+            <input type="checkbox" required class="rounded text-indigo-600 focus:ring-indigo-500 mt-0.5">
+            <span>I agree to the JobConnect Terms of Service, Privacy Policy, and candidate verification standards.</span>
+          </label>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+            <span>Create Free Account</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+        </form>
+
+        <div class="relative my-6 text-center">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+          <span class="relative px-3 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider">or sign in with</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <button onclick="handleSocialAuth('Google')" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
+            <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.1 7.5 23 12 23z"/></svg>
+            <span class="hidden sm:inline">Google</span>
+          </button>
+          <button onclick="handleSocialAuth('LinkedIn')" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
+            <svg class="w-4 h-4 text-[#0A66C2]" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            <span class="hidden sm:inline">LinkedIn</span>
+          </button>
+          <button onclick="handleSocialAuth('GitHub')" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-700">
+            <svg class="w-4 h-4 text-slate-900" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            <span class="hidden sm:inline">GitHub</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="py-4 text-center text-xs text-slate-400">
+    JobConnect Security • Signed JWT Tokens • bcrypt Hashed Credentials • RBAC Active
+  </footer>
+
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+  <script>
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      let bg = 'bg-slate-900 text-white';
+      let icon = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+      
+      if (type === 'info') {
+        icon = `<svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      } else if (type === 'error') {
+        icon = `<svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+      }
+
+      toast.className = `${bg} px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center gap-3 text-xs font-semibold animate-fade-in pointer-events-auto`;
+      toast.innerHTML = `${icon} <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function setAuthMode(mode) {
+      const tabL = document.getElementById('tabLogin');
+      const tabR = document.getElementById('tabRegister');
+      const formL = document.getElementById('loginForm');
+      const formR = document.getElementById('registerForm');
+
+      if (mode === 'login') {
+        tabL.className = "px-5 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-indigo-600";
+        tabR.className = "px-5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+        formL.classList.remove('hidden');
+        formR.classList.add('hidden');
+      } else {
+        tabR.className = "px-5 py-2 rounded-lg text-xs font-bold transition shadow-sm bg-white text-indigo-600";
+        tabL.className = "px-5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+        formR.classList.remove('hidden');
+        formL.classList.add('hidden');
+      }
+    }
+
+    function fillDemoCredentials(role) {
+      setAuthMode('login');
+      const emailInput = document.getElementById('loginEmail');
+      const passInput = document.getElementById('loginPassword');
+
+      if (role === 'user') {
+        document.querySelector('input[name="loginRole"][value="seeker"]').checked = true;
+        emailInput.value = 'ankit.dev@example.com';
+        passInput.value = 'candidate123';
+        showToast("Auto-filled Candidate credentials!", "info");
+      } else if (role === 'hr') {
+        document.querySelector('input[name="loginRole"][value="hr"]').checked = true;
+        emailInput.value = 'priya.hr@abctech.com';
+        passInput.value = 'recruiter123';
+        showToast("Auto-filled HR Recruiter credentials!", "info");
+      } else if (role === 'admin') {
+        document.querySelector('input[name="loginRole"][value="admin"]').checked = true;
+        emailInput.value = 'admin@jobconnect.io';
+        passInput.value = 'superadmin123';
+        showToast("Auto-filled Super Admin credentials!", "info");
+      }
+    }
+
+    function togglePasswordVisibility(fieldId) {
+      const field = document.getElementById(fieldId);
+      field.type = field.type === 'password' ? 'text' : 'password';
+    }
+
+    function toggleRegCompanyInput() {
+      const selected = document.querySelector('input[name="regRole"]:checked').value;
+      const compField = document.getElementById('regCompanyField');
+      if (selected === 'hr') {
+        compField.classList.remove('hidden');
+        document.getElementById('regCompany').required = true;
+      } else {
+        compField.classList.add('hidden');
+        document.getElementById('regCompany').required = false;
+      }
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const role = document.querySelector('input[name="loginRole"]:checked').value;
+      const btn = document.getElementById('btnSubmitLogin');
+
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>Authenticating with JWT...</span>
+      `;
+
+      setTimeout(() => {
+        const state = JSON.parse(localStorage.getItem('jobconnect_state')) || {};
+        state.currentUserRole = role;
+        
+        if (role === 'seeker') {
+          state.currentUser = { email, name: "Ankit Kumar", role: "seeker" };
+        } else if (role === 'hr') {
+          state.currentUser = { email, name: "Priya Sharma", role: "hr", company: "ABC Technologies" };
+        } else if (role === 'admin') {
+          state.currentUser = { email, name: "Platform Admin", role: "admin" };
+        }
+
+        localStorage.setItem('jobconnect_state', JSON.stringify(state));
+        showToast("Authentication successful! Entering JobConnect OS...", "success");
+
+        setTimeout(() => {
+          window.location.href = './index.html';
+        }, 1000);
+      }, 700);
+    }
+
+    function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirmPass = document.getElementById('regConfirmPassword').value;
+      const role = document.querySelector('input[name="regRole"]:checked').value;
+
+      if (password !== confirmPass) {
+        showToast("Passwords do not match!", "error");
+        return;
+      }
+
+      showToast(`Account registered for ${name}! Please sign in.`, "success");
+      setAuthMode('login');
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = password;
+      if (role === 'hr') {
+        document.querySelector('input[name="loginRole"][value="hr"]').checked = true;
+      } else {
+        document.querySelector('input[name="loginRole"][value="seeker"]').checked = true;
+      }
+    }
+
+    function triggerForgotPassword() {
+      const email = prompt("Enter your registered email address for password reset link:", "ankit.dev@example.com");
+      if (email) {
+        showToast(`Reset link dispatched to ${email}!`, "info");
+      }
+    }
+
+    function handleSocialAuth(provider) {
+      showToast(`Signing in via ${provider} OAuth 2.0...`, "info");
+      setTimeout(() => {
+        fillDemoCredentials('user');
+        document.getElementById('btnSubmitLogin').click();
+      }, 800);
+    }
+  </script>
+</body>
+</html>

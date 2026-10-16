@@ -1,77 +1,124 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from './router';
+import Home from './pages/Home';
+import Login from './pages/Login';
 import { useAuth } from './context/AuthContext';
-import { RoleBanner } from './components/RoleBanner';
-import { Navbar } from './components/Navbar';
-import { Toast } from './components/Toast';
-import { Home } from './pages/Home';
-import { MyApplications } from './pages/MyApplications';
-import { SavedJobs } from './pages/SavedJobs';
-import { Profile } from './pages/Profile';
-import { HRDashboard } from './pages/HRDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { Login } from './pages/Login';
 
-export function App() {
-  const { data } = useAuth();
-  const [activeTab, setActiveTab] = useState('explore'); // explore, applications, saved, profile
-  const [showLoginPage, setShowLoginPage] = useState(false);
+function RouteToastCleaner() {
+  const { pathname } = useLocation();
+  const { clearToasts } = useAuth();
+  const prevPathRef = React.useRef(pathname);
 
-  const currentRole = data.currentUserRole;
+  React.useEffect(() => {
+    if (prevPathRef.current !== pathname) {
+      prevPathRef.current = pathname;
+      if (clearToasts) {
+        clearToasts();
+      }
+    }
+  }, [pathname, clearToasts]);
 
-  if (showLoginPage) {
-    return (
-      <>
-        <Login onBack={() => setShowLoginPage(false)} />
-        <Toast />
-      </>
-    );
+  return null;
+}
+
+// Error Boundary to prevent any blank white screen
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
 
-  return (
-    <div className="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
-      {/* Top Role Switcher */}
-      <RoleBanner />
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
 
-      {/* Main Glass Navbar */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenLogin={() => setShowLoginPage(true)}
-      />
+  componentDidCatch(error, errorInfo) {
+    console.error('JobConnect App Error caught by boundary:', error, errorInfo);
+  }
 
-      {/* Main View Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentRole === 'seeker' && (
-          <>
-            {activeTab === 'explore' && <Home />}
-            {activeTab === 'applications' && <MyApplications onExplore={() => setActiveTab('explore')} />}
-            {activeTab === 'saved' && <SavedJobs />}
-            {activeTab === 'profile' && <Profile />}
-          </>
-        )}
-
-        {currentRole === 'hr' && <HRDashboard />}
-
-        {currentRole === 'admin' && <AdminDashboard />}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-16 py-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">J</div>
-            <span className="font-bold text-slate-800">JobConnect React Client</span>
-            <span>• Built with React 18 & Tailwind CSS</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>JWT Secured • REST API Ready • Vite Powered</span>
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', padding: '24px', fontFamily: 'sans-serif' }}>
+          <div style={{ maxWidth: '480px', width: '100%', backgroundColor: '#ffffff', borderRadius: '16px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '14px', backgroundColor: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>
+              ⚠️
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Something went wrong</h2>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: '1.5' }}>
+              The application encountered a runtime error. Click below to reset platform state and reload safely.
+            </p>
+            <div style={{ textAlign: 'left', backgroundColor: '#f1f5f9', padding: '12px', borderRadius: '10px', fontSize: '11px', color: '#334155', marginBottom: '20px', overflowX: 'auto' }}>
+              {this.state.error?.message || 'Unknown error'}
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('jobconnect_token');
+                localStorage.removeItem('jobconnect_state');
+                window.location.href = '/login';
+              }}
+              style={{ padding: '10px 20px', borderRadius: '10px', backgroundColor: '#4f46e5', color: '#ffffff', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+            >
+              Reset Session & Go to Login
+            </button>
           </div>
         </div>
-      </footer>
+      );
+    }
+    return this.props.children;
+  }
+}
 
-      {/* Global Animated Toasts */}
-      <Toast />
-    </div>
+function ProtectedRoute({ children }) {
+  const { data } = useAuth();
+  const token = localStorage.getItem('jobconnect_token');
+  const isLoggedIn = Boolean(token && data?.currentUser && data?.currentUser?.status !== 'Suspended');
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function PublicOnlyRoute({ children }) {
+  const { data } = useAuth();
+  const token = localStorage.getItem('jobconnect_token');
+  const isLoggedIn = Boolean(token && data?.currentUser);
+
+  if (isLoggedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+export function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <RouteToastCleaner />
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

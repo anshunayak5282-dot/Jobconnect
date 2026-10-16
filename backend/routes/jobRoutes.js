@@ -7,35 +7,37 @@ const { authorize } = require('../middleware/roleMiddleware');
 // @route   GET /api/jobs (Public with search & filter)
 router.get('/', async (req, res) => {
   try {
-    const { keyword, location, jobType, minSalary, experience } = req.query;
-    let query = { status: 'Approved' }; // Only show approved jobs to public
+    const { keyword, location, jobType, minSalary, experience, status } = req.query;
 
-    if (keyword) {
-      query.$or = [
-        { title: { $regex: keyword, $options: 'i' } },
-        { companyName: { $regex: keyword, $options: 'i' } },
-        { skills: { $in: [new RegExp(keyword, 'i')] } }
-      ];
-    }
+    const filters = {
+      status: status || 'Approved', // Only show Approved jobs to candidates by default
+      keyword,
+      location,
+      jobType,
+      minSalary,
+      experience
+    };
 
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
-    }
+    const jobs = await Job.find(filters);
+    res.json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
-    if (jobType) {
-      query.jobType = jobType;
-    }
-
-    if (experience) {
-      query.experience = experience;
-    }
-
-    if (minSalary) {
-      query.salaryMax = { $gte: Number(minSalary) };
-    }
-
-    const jobs = await Job.find(query).sort({ createdAt: -1 });
-    res.json({ success: true, count: jobs.length, data: jobs });
+// @route   GET /api/jobs/pending (Admin Only)
+router.get('/pending', protect, authorize('admin'), async (req, res) => {
+  try {
+    const jobs = await Job.find({ status: 'Pending' });
+    res.json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -45,7 +47,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
-    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job vacancy not found' });
+    }
     res.json({ success: true, data: job });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -57,11 +61,17 @@ router.post('/', protect, authorize('hr'), async (req, res) => {
   try {
     const jobData = {
       ...req.body,
-      postedBy: req.user._id,
-      status: 'Pending' // Requires admin verification
+      postedBy: req.user.id || req.user._id,
+      companyName: req.body.company || req.user.company_name || 'ABC Technologies',
+      status: 'Pending' // Sent to Super Admin for verification
     };
+
     const job = await Job.create(jobData);
-    res.status(201).json({ success: true, message: 'Job submitted for admin approval', data: job });
+    res.status(201).json({
+      success: true,
+      message: 'Job submitted for admin verification',
+      data: job
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -70,8 +80,32 @@ router.post('/', protect, authorize('hr'), async (req, res) => {
 // @route   PUT /api/jobs/:id/approve (Admin Only)
 router.put('/:id/approve', protect, authorize('admin'), async (req, res) => {
   try {
-    const job = await Job.findByIdAndUpdate(req.params.id, { status: 'Approved' }, { new: true });
-    res.json({ success: true, message: 'Job approved and live', data: job });
+    const job = await Job.findByIdAndUpdate(req.params.id, { status: 'Approved' });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    res.json({
+      success: true,
+      message: 'Job approved and published live',
+      data: job
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   PUT /api/jobs/:id/reject (Admin Only)
+router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
+  try {
+    const job = await Job.findByIdAndUpdate(req.params.id, { status: 'Rejected' });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    res.json({
+      success: true,
+      message: 'Job opening rejected',
+      data: job
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

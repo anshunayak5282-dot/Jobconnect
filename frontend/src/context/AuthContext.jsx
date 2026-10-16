@@ -1,12 +1,128 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initialData } from '../data/initialData';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { initialData, demoAnkitProfile } from '../data/initialData';
 
 const AuthContext = createContext();
 
+// Helper to safely extract payload from a JWT token
+const parseJwtPayload = (token) => {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+};
+
+const getProfileForUser = (user) => {
+  if (!user || !user.email) return null;
+  if (user.email === 'ankit.dev@example.com') {
+    return demoAnkitProfile;
+  }
+
+  try {
+    const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+    if (storedMap[user.email]) {
+      return storedMap[user.email];
+    }
+  } catch (e) {}
+
+  return {
+    name: user.name || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
+    email: user.email,
+    phone: user.phone || '',
+    company: user.company || user.company_name || '',
+    location: user.location || '',
+    title: user.title || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
+    about: user.about || '',
+    skills: Array.isArray(user.skills) ? user.skills : (user.skills ? user.skills.split(',').map(s => s.trim()) : []),
+    education: user.education || [],
+    experience: user.experience || [],
+    projects: user.projects || [],
+    resumeName: user.resume_name || null,
+    resumeUploadDate: user.resume_name ? 'Active' : null
+  };
+};
+
+export const calculateProfileCompleteness = (p) => {
+  if (!p) return 0;
+  let score = 0;
+  if (p.name && String(p.name).trim()) score += 20;
+  if (p.email && String(p.email).trim()) score += 20;
+  if (p.phone && String(p.phone).trim()) score += 15;
+  if (p.location && String(p.location).trim()) score += 15;
+  if (p.title && String(p.title).trim()) score += 10;
+  if (p.about && String(p.about).trim()) score += 10;
+  const hasSkills = Array.isArray(p.skills)
+    ? p.skills.length > 0
+    : Boolean(p.skills && String(p.skills).trim());
+  if (hasSkills) score += 10;
+  return Math.min(score, 100);
+};
+
 export const AuthProvider = ({ children }) => {
   const [data, setData] = useState(() => {
+    const token = localStorage.getItem('jobconnect_token');
     const local = localStorage.getItem('jobconnect_state');
-    return local ? JSON.parse(local) : initialData;
+
+    // If no JWT token, user is strictly NOT logged in
+    if (!token) {
+      return {
+        ...initialData,
+        currentUser: null,
+        currentUserRole: null,
+        profile: null
+      };
+    }
+
+    if (!local) {
+      return {
+        ...initialData,
+        currentUser: null,
+        currentUserRole: null,
+        profile: null
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(local);
+      if (!parsed.currentUser || !parsed.currentUser.email) {
+        return {
+          ...parsed,
+          currentUser: null,
+          currentUserRole: null,
+          profile: null
+        };
+      }
+
+      // Anti-role spoofing: Verify parsed role against signed JWT payload if present
+      const jwtPayload = parseJwtPayload(token);
+      if (jwtPayload && jwtPayload.role) {
+        const tokenRole = jwtPayload.role;
+        parsed.currentUser.role = tokenRole;
+        parsed.currentUserRole = tokenRole === 'user' ? 'seeker' : tokenRole;
+      } else if (parsed.currentUser.role) {
+        parsed.currentUserRole = parsed.currentUser.role === 'user' ? 'seeker' : parsed.currentUser.role;
+      }
+
+      parsed.profile = getProfileForUser(parsed.currentUser);
+      return parsed;
+    } catch (e) {
+      return {
+        ...initialData,
+        currentUser: null,
+        currentUserRole: null,
+        profile: null
+      };
+    }
   });
 
   const [toasts, setToasts] = useState([]);
@@ -15,36 +131,253 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('jobconnect_state', JSON.stringify(data));
   }, [data]);
 
-  const showToast = (message, type = 'success') => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3500);
-  };
+  // Backend session & anti-role spoofing verification on startup
+  useEffect(() => {
+    const token = localStorage.getItem('jobconnect_token');
+    if (!token) return;
 
-  const switchRole = (role) => {
-    setData(prev => ({ ...prev, currentUserRole: role }));
-    showToast(`Switched simulation role to ${role === 'seeker' ? 'Candidate' : role === 'hr' ? 'HR Recruiter' : 'Super Admin'}`, 'info');
-  };
+    fetch('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Token verification failed');
+        }
+        return res.json();
+      })
+      .then(resData => {
+        if (resData.success && resData.user) {
+          const dbUser = resData.user;
+          const verifiedRole = dbUser.role === 'user' ? 'seeker' : dbUser.role;
+
+          setData(prev => {
+            // If local storage was tampered with, reconcile with genuine MySQL record
+            if (
+              !prev.currentUser ||
+              prev.currentUser.id !== dbUser.id ||
+              prev.currentUser.role !== dbUser.role ||
+              prev.currentUserRole !== verifiedRole
+            ) {
+              return {
+                ...prev,
+                currentUser: dbUser,
+                currentUserRole: verifiedRole,
+                profile: getProfileForUser(dbUser)
+              };
+            }
+            return prev;
+          });
+        }
+      })
+      .catch(() => {
+        // Token was invalid, expired, or tampered with
+        if (!token.startsWith('jobconnect_jwt_token_demo_')) {
+          localStorage.removeItem('jobconnect_token');
+          localStorage.removeItem('jobconnect_state');
+          setData(prev => ({
+            ...prev,
+            currentUser: null,
+            currentUserRole: null,
+            profile: null
+          }));
+        }
+      });
+  }, []);
+
+  // Sync profile data directly from MySQL when user session is active
+  useEffect(() => {
+    const token = localStorage.getItem('jobconnect_token');
+    const userEmail = data.currentUser?.email;
+    if (token && userEmail && userEmail !== 'ankit.dev@example.com') {
+      fetch(`/api/users/profile/${encodeURIComponent(userEmail)}`)
+        .then(res => res.json())
+        .then(resData => {
+          if (resData.success && resData.data) {
+            const dbUser = resData.data;
+            setData(prev => ({
+              ...prev,
+              profile: {
+                ...prev.profile,
+                name: dbUser.name || prev.profile?.name,
+                email: dbUser.email || prev.profile?.email,
+                company: dbUser.company_name || dbUser.company || prev.profile?.company || '',
+                phone: dbUser.phone !== null && dbUser.phone !== undefined ? dbUser.phone : prev.profile?.phone,
+                location: dbUser.location !== null && dbUser.location !== undefined ? dbUser.location : prev.profile?.location,
+                title: dbUser.title || prev.profile?.title || 'Candidate',
+                about: dbUser.about !== null && dbUser.about !== undefined ? dbUser.about : prev.profile?.about,
+                resumeName: dbUser.resume_name || prev.profile?.resumeName,
+                skills: dbUser.skills ? (Array.isArray(dbUser.skills) ? dbUser.skills : dbUser.skills.split(',').map(s => s.trim())) : prev.profile?.skills,
+                education: dbUser.education !== undefined && dbUser.education !== null ? (Array.isArray(dbUser.education) ? dbUser.education : (typeof dbUser.education === 'string' ? JSON.parse(dbUser.education) : [])) : (prev.profile?.education || []),
+                experience: dbUser.experience !== undefined && dbUser.experience !== null ? (Array.isArray(dbUser.experience) ? dbUser.experience : (typeof dbUser.experience === 'string' ? JSON.parse(dbUser.experience) : [])) : (prev.profile?.experience || []),
+                projects: dbUser.projects !== undefined && dbUser.projects !== null ? (Array.isArray(dbUser.projects) ? dbUser.projects : (typeof dbUser.projects === 'string' ? JSON.parse(dbUser.projects) : [])) : (prev.profile?.projects || [])
+              }
+            }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [data.currentUser?.email]);
+
+  // Sync profile requests from MySQL for Admin and HR
+  useEffect(() => {
+    const token = localStorage.getItem('jobconnect_token');
+    const role = data.currentUserRole || data.currentUser?.role;
+    if (token) {
+      if (role === 'admin') {
+        fetch('/api/users/profile-requests', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(resData => {
+            if (resData.success && Array.isArray(resData.data)) {
+              setData(prev => ({
+                ...prev,
+                profileRequests: resData.data
+              }));
+            }
+          })
+          .catch(() => {});
+      } else if (role === 'hr') {
+        fetch('/api/users/profile-requests/my', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(resData => {
+            if (resData.success && resData.data) {
+              setData(prev => {
+                const existing = (prev.profileRequests || []).filter(r => r.id !== resData.data.id);
+                return {
+                  ...prev,
+                  profileRequests: [resData.data, ...existing]
+                };
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [data.currentUserRole, data.currentUser?.role, data.currentUser?.email]);
+
+  const toastTimersRef = useRef(new Map());
+  const recentToastsRef = useRef(new Map());
+
+  // Function to remove a specific toast by id
+  const removeToast = useCallback((id) => {
+    if (toastTimersRef.current.has(id)) {
+      clearTimeout(toastTimersRef.current.get(id));
+      toastTimersRef.current.delete(id);
+    }
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Function to clear all toasts and cancel active timers (used on login, logout, and page navigation)
+  const clearToasts = useCallback(() => {
+    toastTimersRef.current.forEach(timer => clearTimeout(timer));
+    toastTimersRef.current.clear();
+    recentToastsRef.current.clear();
+    setToasts([]);
+  }, []);
+
+  // Function to show toast:
+  // - Prevents duplicates if identical message is currently active
+  // - Debounces identical messages within 2.5s
+  // - Automatically dismisses after exactly 3 seconds (3000ms)
+  const showToast = useCallback((message, type = 'success', duration = 3000) => {
+    if (!message || typeof message !== 'string') return;
+    const cleanMsg = message.trim();
+    if (!cleanMsg) return;
+
+    const now = Date.now();
+    const lastShown = recentToastsRef.current.get(cleanMsg);
+    // Ignore duplicate notifications dispatched within 2500ms
+    if (lastShown && (now - lastShown) < 2500) {
+      return;
+    }
+    recentToastsRef.current.set(cleanMsg, now);
+
+    const id = `toast-${now}-${Math.random().toString(36).substr(2, 9)}`;
+
+    setToasts(prev => {
+      // Prevent duplicate notification if identical message is already displayed
+      if (prev.some(t => t.message === cleanMsg)) {
+        return prev;
+      }
+      return [...prev, { id, message: cleanMsg, type }];
+    });
+
+    // Automatically dismiss after 3 seconds
+    const timer = setTimeout(() => {
+      removeToast(id);
+    }, duration);
+
+    toastTimersRef.current.set(id, timer);
+  }, [removeToast]);
+
+  // Clean up all toast timers on unmount
+  useEffect(() => {
+    return () => {
+      toastTimersRef.current.forEach(timer => clearTimeout(timer));
+      toastTimersRef.current.clear();
+    };
+  }, []);
+
+  // Show this toast ONLY when the simulation role actually changes, display it once, and dismiss after 3 seconds.
+  // Anti-role spoofing guard: Authenticated users cannot escalate or change permissions.
+  const switchRole = useCallback((newRole) => {
+    if (!newRole) return;
+    const actualRole = data.currentUser?.role;
+    if (actualRole) {
+      const authorizedRole = actualRole === 'user' ? 'seeker' : actualRole;
+      if (newRole !== authorizedRole) {
+        const authorizedLabel = authorizedRole === 'seeker' ? 'Candidate' : authorizedRole === 'hr' ? 'HR Recruiter' : 'Super Admin';
+        const attemptedLabel = newRole === 'seeker' ? 'Candidate' : newRole === 'hr' ? 'HR Recruiter' : 'Super Admin';
+        showToast(
+          `Role spoofing prevented: Your account is authorized only as ${authorizedLabel} and cannot access ${attemptedLabel} mode.`,
+          'error',
+          3500
+        );
+        return;
+      }
+    }
+
+    setData(prev => {
+      const currentRole = prev.currentUserRole;
+      // If role did not change, DO NOT show toast and DO NOT re-render
+      if (currentRole === newRole) {
+        return prev;
+      }
+      const roleLabel = newRole === 'seeker' ? 'Candidate' : newRole === 'hr' ? 'HR Recruiter' : 'Super Admin';
+      showToast(`Switched simulation role to ${roleLabel}`, 'info', 3000);
+      return { ...prev, currentUserRole: newRole };
+    });
+  }, [data.currentUser?.role, showToast]);
 
   const resetAllData = () => {
     setData(initialData);
     showToast("Reset all platform state back to seed data", "info");
   };
 
-  const applyForJob = (jobId, coverLetter) => {
-    const job = data.jobs.find(j => j.id === jobId);
-    if (!job) return;
+  const applyForJob = async (jobId, coverLetter) => {
+    const job = (data.jobs || []).find(j => j.id === jobId);
+    if (!job) return false;
+
+    // Enforce 100% candidate profile completion validation
+    const completeness = calculateProfileCompleteness(data.profile);
+    if (completeness < 100) {
+      showToast('Complete your profile to 100% to apply for jobs.', 'error');
+      return false;
+    }
 
     const newApp = {
       id: `app-${Date.now()}`,
       jobId,
-      applicantName: data.profile.name,
-      applicantEmail: data.profile.email,
-      applicantPhone: data.profile.phone,
-      applicantLocation: data.profile.location,
-      resumeUrl: data.profile.resumeName,
+      applicantName: data.profile?.name || 'Candidate',
+      applicantEmail: data.profile?.email || '',
+      applicantPhone: data.profile?.phone || '',
+      applicantLocation: data.profile?.location || '',
+      resumeUrl: data.profile?.resumeName || 'Candidate_Resume.pdf',
       coverLetter,
       status: 'Applied',
       appliedAt: new Date().toISOString().split('T')[0]
@@ -64,7 +397,32 @@ export const AuthProvider = ({ children }) => {
       notifications: [newNotif, ...prev.notifications]
     }));
 
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      const numericJobId = typeof jobId === 'string' ? jobId.replace('job-', '') : jobId;
+      try {
+        const res = await fetch('/api/applications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            jobId: numericJobId,
+            coverLetter,
+            resume: data.profile?.resumeName || 'Candidate_Resume.pdf'
+          })
+        });
+        const resData = await res.json();
+        if (!res.ok && resData && !resData.success) {
+          showToast(resData.message || 'Complete your profile to 100% to apply for jobs.', 'error');
+          return false;
+        }
+      } catch (e) {}
+    }
+
     showToast(`Application submitted for ${job.title}!`, 'success');
+    return true;
   };
 
   const toggleSaveJob = (jobId) => {
@@ -80,11 +438,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const postNewJob = (jobData) => {
+    const hrName = data.currentUser?.name || data.profile?.name;
+    const hrEmail = data.currentUser?.email || data.profile?.email;
+    const hrId = data.currentUser?.id || data.currentUser?._id;
+    const hrCompany = data.currentUser?.company || data.currentUser?.company_name || data.profile?.company || '';
+
     const newJob = {
       id: `job-${Date.now()}`,
       ...jobData,
+      company: jobData.company || hrCompany || 'My Company',
       status: 'Pending', // Sent to Admin
-      postedBy: 'HR - Priya Sharma',
+      postedBy: hrName ? `HR - ${hrName}` : 'HR Recruiter',
+      posted_by: hrId || 2,
+      postedByEmail: hrEmail,
       createdAt: new Date().toISOString().split('T')[0]
     };
 
@@ -101,6 +467,29 @@ export const AuthProvider = ({ children }) => {
       jobs: [newJob, ...prev.jobs],
       notifications: [newNotif, ...prev.notifications]
     }));
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      fetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: jobData.title,
+          company: jobData.company,
+          location: jobData.location,
+          salaryMin: jobData.salaryMin,
+          salaryMax: jobData.salaryMax,
+          experience: jobData.experience,
+          jobType: jobData.jobType,
+          skills: Array.isArray(jobData.skills) ? jobData.skills.join(', ') : jobData.skills,
+          description: jobData.description,
+          deadline: jobData.deadline || '2026-12-31'
+        })
+      }).catch(() => {});
+    }
 
     showToast("Job submitted! Awaiting Super Admin approval.", "info");
   };
@@ -167,26 +556,555 @@ export const AuthProvider = ({ children }) => {
     showToast("User account status toggled", "info");
   };
 
-  const addSkill = (skill) => {
+  const updateProfile = async (updatedFields) => {
+    const isHR = data.currentUserRole === 'hr' || data.currentUser?.role === 'hr';
+
+    if (isHR) {
+      // === HR PROFILE MODERATION QUEUE WORKFLOW ===
+      // When an HR user edits and submits their profile, do not update the profile directly in MySQL.
+      // Save the changes as a Pending Approval Request for the Admin.
+      const hrUser = data.currentUser || {};
+      const hrName = data.profile?.name || hrUser.name || 'HR Recruiter';
+      const hrEmail = data.profile?.email || hrUser.email || '';
+      const hrId = hrUser.id || hrUser._id || 2;
+      const currentProfileData = { ...data.profile };
+
+      const tempId = `pr-${Date.now()}`;
+      const newRequest = {
+        id: tempId,
+        _id: tempId,
+        user_id: hrId,
+        userId: hrId,
+        userName: hrName,
+        user_name: hrName,
+        userEmail: hrEmail,
+        user_email: hrEmail,
+        current_data: currentProfileData,
+        currentData: currentProfileData,
+        proposed_data: updatedFields,
+        proposedData: updatedFields,
+        status: 'Pending',
+        created_at: new Date().toISOString()
+      };
+
+      setData(prev => {
+        const existing = (prev.profileRequests || []).filter(
+          r => r.userEmail !== hrEmail || r.status !== 'Pending'
+        );
+        const adminNotif = {
+          id: `n-${Date.now()}`,
+          title: 'HR Profile Edit Request',
+          text: `${hrName} submitted profile changes for Super Admin approval.`,
+          time: 'Just now',
+          type: 'admin'
+        };
+        return {
+          ...prev,
+          profileRequests: [newRequest, ...existing],
+          notifications: [adminNotif, ...(prev.notifications || [])]
+        };
+      });
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        try {
+          const res = await fetch('/api/users/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(updatedFields)
+          });
+          const resData = await res.json();
+          if (resData.success && resData.data) {
+            setData(prev => ({
+              ...prev,
+              profileRequests: [
+                resData.data,
+                ...(prev.profileRequests || []).filter(r => r.id !== tempId && r.id !== resData.data.id)
+              ]
+            }));
+          }
+        } catch (e) {
+          console.error('Failed to submit HR profile request to MySQL:', e);
+        }
+      }
+
+      showToast('Profile update submitted! Saved as Pending Approval for Admin.', 'info');
+      return;
+    }
+
+    // Direct update for Candidate/Job Seeker profiles
     setData(prev => {
-      if (prev.profile.skills.includes(skill)) return prev;
+      const newProfile = {
+        ...(prev.profile || {}),
+        ...updatedFields
+      };
+
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
       return {
         ...prev,
-        profile: { ...prev.profile, skills: [...prev.profile.skills, skill] }
+        profile: newProfile
+      };
+    });
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        await fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updatedFields)
+        });
+      } catch (e) {
+        console.error('Failed to sync profile with MySQL:', e);
+      }
+    }
+
+    showToast('Profile updated successfully!', 'success');
+  };
+
+  const approveProfileRequest = async (requestId) => {
+    const isAdmin = data.currentUserRole === 'admin' || data.currentUser?.role === 'admin';
+    if (!isAdmin) {
+      showToast('Only Super Administrators can approve profile requests.', 'error');
+      return;
+    }
+
+    const req = (data.profileRequests || []).find(r => String(r.id) === String(requestId));
+    if (!req) {
+      showToast('Profile request not found.', 'error');
+      return;
+    }
+
+    // Prevent HR users from approving their own requests
+    const adminId = data.currentUser?.id || data.currentUser?._id;
+    if (String(req.user_id) === String(adminId) || req.userEmail === data.currentUser?.email) {
+      showToast('Forbidden: You are strictly prohibited from approving your own profile request.', 'error');
+      return;
+    }
+
+    const approvedAt = new Date().toISOString();
+    setData(prev => {
+      const updatedRequests = (prev.profileRequests || []).map(r => {
+        if (String(r.id) === String(requestId)) {
+          return { ...r, status: 'Approved', reviewed_at: approvedAt };
+        }
+        return r;
+      });
+
+      const targetEmail = req.userEmail;
+      const proposed = req.proposed_data || req.proposedData || {};
+
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (targetEmail) {
+          storedMap[targetEmail] = {
+            ...(storedMap[targetEmail] || req.current_data || {}),
+            ...proposed
+          };
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      let updatedProfile = prev.profile;
+      if (prev.profile?.email === targetEmail) {
+        updatedProfile = {
+          ...prev.profile,
+          ...proposed,
+          company: proposed.company || proposed.company_name || prev.profile?.company
+        };
+      }
+
+      const updatedUsers = (prev.users || []).map(u => {
+        if (u.email === targetEmail) {
+          const comp = proposed.company || proposed.company_name || u.company;
+          return {
+            ...u,
+            name: proposed.name || u.name,
+            phone: proposed.phone || u.phone,
+            company: comp,
+            company_name: comp,
+            location: proposed.location || u.location,
+            title: proposed.title || u.title
+          };
+        }
+        return u;
+      });
+
+      const hrNotif = {
+        id: `n-${Date.now()}`,
+        title: 'HR Profile Changes Approved',
+        text: `Super Admin approved profile updates for ${req.userName}. Official credentials are now active in MySQL.`,
+        time: 'Just now',
+        type: 'hr'
+      };
+
+      return {
+        ...prev,
+        profileRequests: updatedRequests,
+        profile: updatedProfile,
+        users: updatedUsers,
+        notifications: [hrNotif, ...(prev.notifications || [])]
+      };
+    });
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (e) {
+        console.error('Failed to sync approval to MySQL:', e);
+      }
+    }
+
+    showToast(`Approved profile request for ${req.userName}! Updated in MySQL.`, 'success');
+  };
+
+  const rejectProfileRequest = async (requestId, reason = 'Changes could not be verified by platform administrator.') => {
+    const isAdmin = data.currentUserRole === 'admin' || data.currentUser?.role === 'admin';
+    if (!isAdmin) {
+      showToast('Only Super Administrators can reject profile requests.', 'error');
+      return;
+    }
+
+    const req = (data.profileRequests || []).find(r => String(r.id) === String(requestId));
+    if (!req) {
+      showToast('Profile request not found.', 'error');
+      return;
+    }
+
+    const rejectedAt = new Date().toISOString();
+    setData(prev => {
+      const updatedRequests = (prev.profileRequests || []).map(r => {
+        if (String(r.id) === String(requestId)) {
+          return { ...r, status: 'Rejected', admin_notes: reason, reviewed_at: rejectedAt };
+        }
+        return r;
+      });
+
+      const hrNotif = {
+        id: `n-${Date.now()}`,
+        title: 'HR Profile Request Rejected',
+        text: `Super Admin rejected profile changes for ${req.userName} (${reason}). Existing credentials were kept unchanged.`,
+        time: 'Just now',
+        type: 'hr'
+      };
+
+      return {
+        ...prev,
+        profileRequests: updatedRequests,
+        notifications: [hrNotif, ...(prev.notifications || [])]
+      };
+    });
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ reason })
+        });
+      } catch (e) {
+        console.error('Failed to sync rejection to MySQL:', e);
+      }
+    }
+
+    showToast(`Profile request for ${req.userName} rejected. Existing profile unchanged.`, 'info');
+  };
+
+  const addSkill = (skill) => {
+    setData(prev => {
+      const currentSkills = prev.profile?.skills || [];
+      if (currentSkills.includes(skill)) return prev;
+      const updatedSkills = [...currentSkills, skill];
+      const newProfile = { ...prev.profile, skills: updatedSkills };
+
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ skills: updatedSkills })
+        }).catch(() => {});
+      }
+
+      return {
+        ...prev,
+        profile: newProfile
       };
     });
     showToast(`Added ${skill} to skills!`, "success");
   };
 
   const removeSkill = (skill) => {
+    setData(prev => {
+      const updatedSkills = (prev.profile?.skills || []).filter(s => s !== skill);
+      const newProfile = { ...prev.profile, skills: updatedSkills };
+
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ skills: updatedSkills })
+        }).catch(() => {});
+      }
+
+      return {
+        ...prev,
+        profile: newProfile
+      };
+    });
+    showToast(`Removed ${skill}`, "info");
+  };
+
+  const addEducation = (edu) => {
+    setData(prev => {
+      const updatedEdu = [...(prev.profile?.education || []), edu];
+      const newProfile = { ...prev.profile, education: updatedEdu };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ education: updatedEdu })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast(`Added "${edu.degree}" to Education!`, "success");
+  };
+
+  const removeEducation = (index) => {
+    setData(prev => {
+      const updatedEdu = (prev.profile?.education || []).filter((_, i) => i !== index);
+      const newProfile = { ...prev.profile, education: updatedEdu };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ education: updatedEdu })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast("Education entry removed", "info");
+  };
+
+  const addExperience = (exp) => {
+    setData(prev => {
+      const updatedExp = [...(prev.profile?.experience || []), exp];
+      const newProfile = { ...prev.profile, experience: updatedExp };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ experience: updatedExp })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast(`Added "${exp.position}" to Experience!`, "success");
+  };
+
+  const removeExperience = (index) => {
+    setData(prev => {
+      const updatedExp = (prev.profile?.experience || []).filter((_, i) => i !== index);
+      const newProfile = { ...prev.profile, experience: updatedExp };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ experience: updatedExp })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast("Experience entry removed", "info");
+  };
+
+  const addProject = (proj) => {
+    setData(prev => {
+      const updatedProj = [...(prev.profile?.projects || []), proj];
+      const newProfile = { ...prev.profile, projects: updatedProj };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ projects: updatedProj })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast(`Added "${proj.title}" to Featured Projects!`, "success");
+  };
+
+  const removeProject = (index) => {
+    setData(prev => {
+      const updatedProj = (prev.profile?.projects || []).filter((_, i) => i !== index);
+      const newProfile = { ...prev.profile, projects: updatedProj };
+      try {
+        const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+        if (newProfile.email) {
+          storedMap[newProfile.email] = newProfile;
+          localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('jobconnect_token');
+      if (token) {
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ projects: updatedProj })
+        }).catch(() => {});
+      }
+
+      return { ...prev, profile: newProfile };
+    });
+    showToast("Project removed", "info");
+  };
+
+  const registerNewUser = (user) => {
+    setData(prev => {
+      const existing = prev.users || [];
+      if (existing.some(u => u.email === user.email)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        users: [...existing, user]
+      };
+    });
+  };
+
+  const loginUserSuccess = (user, role, token) => {
+    // Clear any stale toast state after login
+    clearToasts();
+    if (token) {
+      localStorage.setItem('jobconnect_token', token);
+    }
+    // Strictly bind role to user.role from MySQL (preventing any parameter-based spoofing)
+    const verifiedRole = user.role === 'user' ? 'seeker' : user.role;
+    const userProfile = getProfileForUser(user);
     setData(prev => ({
       ...prev,
-      profile: {
-        ...prev.profile,
-        skills: prev.profile.skills.filter(s => s !== skill)
-      }
+      currentUserRole: verifiedRole,
+      currentUser: user,
+      profile: userProfile
     }));
-    showToast(`Removed ${skill}`, "info");
+  };
+
+  const logout = () => {
+    clearToasts();
+    localStorage.removeItem('jobconnect_token');
+    setData(prev => ({
+      ...prev,
+      currentUser: null,
+      currentUserRole: null,
+      profile: null
+    }));
+    try {
+      const state = JSON.parse(localStorage.getItem('jobconnect_state')) || {};
+      state.currentUser = null;
+      state.currentUserRole = null;
+      state.profile = null;
+      localStorage.setItem('jobconnect_state', JSON.stringify(state));
+    } catch (e) {}
+    showToast('Logged out successfully', 'info', 3000);
   };
 
   return (
@@ -194,6 +1112,8 @@ export const AuthProvider = ({ children }) => {
       data,
       toasts,
       showToast,
+      clearToasts,
+      removeToast,
       switchRole,
       resetAllData,
       applyForJob,
@@ -204,7 +1124,20 @@ export const AuthProvider = ({ children }) => {
       rejectJob,
       toggleUserStatus,
       addSkill,
-      removeSkill
+      removeSkill,
+      addEducation,
+      removeEducation,
+      addExperience,
+      removeExperience,
+      addProject,
+      removeProject,
+      registerNewUser,
+      loginUserSuccess,
+      updateProfile,
+      approveProfileRequest,
+      rejectProfileRequest,
+      calculateProfileCompleteness,
+      logout
     }}>
       {children}
     </AuthContext.Provider>

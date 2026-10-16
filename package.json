@@ -1,0 +1,13 @@
+{
+  "name": "jobconnect-project",
+  "version": "1.0.0",
+  "description": "JobConnect Recruitment Platform - MySQL & React",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend start",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev"
+  }
+}

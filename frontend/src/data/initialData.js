@@ -1,45 +1,47 @@
+export const demoAnkitProfile = {
+  name: "Ankit Kumar",
+  email: "ankit.dev@example.com",
+  phone: "+91 98765 43210",
+  location: "Ranchi, Jharkhand",
+  about: "Proactive Full-Stack Software Developer passionate about high-performance web applications with React, Node.js, and MongoDB. Solved 350+ DSA problems with strong fundamentals in REST APIs and system design.",
+  title: "Full Stack MERN Developer",
+  experienceYears: "Fresher (6 mos internship)",
+  skills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "Express", "MongoDB", "Git", "Tailwind CSS"],
+  education: [
+    { degree: "B.Tech in Computer Science & Engineering", institution: "Birla Institute of Technology (BIT)", year: 2025 },
+    { degree: "Senior Secondary (XII - Science)", institution: "Delhi Public School, Ranchi", year: 2021 }
+  ],
+  experience: [
+    {
+      company: "TechNova Labs",
+      position: "Full Stack Intern",
+      startDate: "Jan 2025",
+      endDate: "Present",
+      description: "Built scalable REST API microservices using Node.js and MongoDB. Designed responsive dashboard components in React."
+    }
+  ],
+  projects: [
+    {
+      title: "JobConnect Recruitment Portal",
+      description: "Enterprise candidate matching system with JWT authentication, role guards, and live application pipeline.",
+      technologies: ["React", "Node.js", "Express", "MongoDB"],
+      link: "https://github.com/example/jobconnect"
+    },
+    {
+      title: "DevMetrics Cloud Dashboard",
+      description: "Real-time telemetry and monitoring tool for microservices with WebSocket live charts.",
+      technologies: ["React", "Tailwind", "Node.js"],
+      link: "https://github.com/example/devmetrics"
+    }
+  ],
+  resumeName: "Ankit_Kumar_FullStack_Resume.pdf",
+  resumeUploadDate: "Oct 2026"
+};
+
 export const initialData = {
-  currentUserRole: 'seeker', // 'seeker', 'hr', 'admin'
-  
-  profile: {
-    name: "Ankit Kumar",
-    email: "ankit.dev@example.com",
-    phone: "+91 98765 43210",
-    location: "Ranchi, Jharkhand",
-    about: "Proactive Full-Stack Software Developer passionate about high-performance web applications with React, Node.js, and MongoDB. Solved 350+ DSA problems with strong fundamentals in REST APIs and system design.",
-    title: "Full Stack MERN Developer",
-    experienceYears: "Fresher (6 mos internship)",
-    skills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "Express", "MongoDB", "Git", "Tailwind CSS"],
-    education: [
-      { degree: "B.Tech in Computer Science & Engineering", institution: "Birla Institute of Technology (BIT)", year: 2025 },
-      { degree: "Senior Secondary (XII - Science)", institution: "Delhi Public School, Ranchi", year: 2021 }
-    ],
-    experience: [
-      {
-        company: "TechNova Labs",
-        position: "Full Stack Intern",
-        startDate: "Jan 2025",
-        endDate: "Present",
-        description: "Built scalable REST API microservices using Node.js and MongoDB. Designed responsive dashboard components in React."
-      }
-    ],
-    projects: [
-      {
-        title: "JobConnect Recruitment Portal",
-        description: "Enterprise candidate matching system with JWT authentication, role guards, and live application pipeline.",
-        technologies: ["React", "Node.js", "Express", "MongoDB"],
-        link: "https://github.com/example/jobconnect"
-      },
-      {
-        title: "DevMetrics Cloud Dashboard",
-        description: "Real-time telemetry and monitoring tool for microservices with WebSocket live charts.",
-        technologies: ["React", "Tailwind", "Node.js"],
-        link: "https://github.com/example/devmetrics"
-      }
-    ],
-    resumeName: "Ankit_Kumar_FullStack_Resume.pdf",
-    resumeUploadDate: "Oct 2026"
-  },
+  currentUserRole: null,
+  currentUser: null,
+  profile: null,
 
   jobs: [
     {
@@ -222,5 +224,7 @@ export const initialData = {
     { id: "n-1", title: "New Job Match", text: "ABC Technologies posted 'Junior Web Developer' in Ranchi.", time: "10 mins ago", type: "job" },
     { id: "n-2", title: "Application Under Review", text: "ABC Technologies updated your application status to Under Review.", time: "2 hrs ago", type: "status" },
     { id: "n-3", title: "Job Awaiting Approval", text: "DevOps & Cloud Engineer submitted by Priya Sharma.", time: "Yesterday", type: "admin" }
-  ]
+  ],
+
+  profileRequests: []
 };

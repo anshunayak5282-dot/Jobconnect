@@ -15,6 +15,7 @@ export function Home() {
     applyForJob,
     toggleSaveJob,
     postNewJob,
+    fetchJobs,
     updateApplicationStatus,
     approveJob,
     rejectJob,
@@ -197,10 +198,10 @@ export function Home() {
       const q = keyword.toLowerCase().trim();
       list = list.filter(
         (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.company.toLowerCase().includes(q) ||
-          j.skills.some((s) => s.toLowerCase().includes(q)) ||
-          j.description.toLowerCase().includes(q)
+          (j.title && j.title.toLowerCase().includes(q)) ||
+          ((j.company || j.companyName) && (j.company || j.companyName).toLowerCase().includes(q)) ||
+          (Array.isArray(j.skills) ? j.skills : (j.skills ? String(j.skills).split(',') : [])).some((s) => s.toLowerCase().includes(q)) ||
+          (j.description && j.description.toLowerCase().includes(q))
       );
     }
 
@@ -390,7 +391,7 @@ export function Home() {
     (a) => a.applicantEmail === activeUserEmail
   );
   const savedJobs = (data.jobs || []).filter((j) =>
-    (data.savedJobIds || []).includes(j.id)
+    (data.savedJobIds || []).some((id) => String(id).replace('job-', '') === String(j.id).replace('job-', ''))
   );
 
   const userInitials = useMemo(() => {
@@ -441,41 +442,48 @@ export function Home() {
       if (isDemoHR) {
         return (
           j.company === 'ABC Technologies' ||
+          j.companyName === 'ABC Technologies' ||
           j.postedBy === 'HR - Priya Sharma' ||
           String(j.posted_by) === '2'
         );
       }
 
-      // 2. For newly registered HR accounts, STRICTLY ISOLATE:
+      // 2. If explicitly created by this authenticated HR user, ALWAYS include it
+      const matchesCreatorId =
+        hrId && (String(j.posted_by) === String(hrId) || String(j.postedBy) === String(hrId));
+      if (matchesCreatorId) return true;
+
+      const matchesCreatorEmail =
+        hrEmail && j.postedByEmail && j.postedByEmail.toLowerCase() === hrEmail;
+      if (matchesCreatorEmail) return true;
+
+      const matchesCreatorName =
+        hrName && (j.postedBy === `HR - ${hrName}` || j.postedBy === hrName || j.postedByName === hrName);
+      if (matchesCreatorName) return true;
+
+      // 3. For newly registered HR accounts, STRICTLY ISOLATE:
       // Do NOT show Priya Sharma or ABC Technologies demo vacancies
       const isDemoJob =
         j.postedBy === 'HR - Priya Sharma' ||
         String(j.posted_by) === '2' ||
-        (j.company === 'ABC Technologies' && (j.id === 'job-1' || j.id === 1 || j.id === 'job-6'));
+        ((j.company === 'ABC Technologies' || j.companyName === 'ABC Technologies') && (j.id === 'job-1' || j.id === 1 || j.id === 'job-6' || j.id === 6));
 
       if (isDemoJob) return false;
 
-      // Match jobs explicitly created by this HR user
-      const matchesCreatorId =
-        hrId && (String(j.posted_by) === String(hrId) || String(j.postedBy) === String(hrId));
-      const matchesCreatorEmail =
-        hrEmail && j.postedByEmail && j.postedByEmail.toLowerCase() === hrEmail;
-      const matchesCreatorName =
-        hrName && (j.postedBy === `HR - ${hrName}` || j.postedBy === hrName);
-
       // Match jobs under this HR's company (only if company is non-empty)
+      const comp = j.company || j.companyName;
       const matchesCompany =
         myCompany &&
-        j.company &&
-        j.company.toLowerCase().trim() === myCompany.toLowerCase().trim();
+        comp &&
+        comp.toLowerCase().trim() === myCompany.toLowerCase().trim();
 
-      return Boolean(matchesCreatorId || matchesCreatorEmail || matchesCreatorName || matchesCompany);
+      return Boolean(matchesCompany);
     });
   }, [data.jobs, isDemoHR, hrId, hrEmail, hrName, myCompany]);
 
   const hrActiveJobs = hrJobs.filter((j) => j.status === 'Approved');
-  const hrJobIds = hrJobs.map((j) => j.id);
-  const hrAllApps = (data.applications || []).filter((a) => hrJobIds.includes(a.jobId));
+  const hrJobIds = hrJobs.map((j) => String(j.id).replace('job-', ''));
+  const hrAllApps = (data.applications || []).filter((a) => hrJobIds.includes(String(a.jobId).replace('job-', '')));
   const hrShortlisted = hrAllApps.filter((a) =>
     ['Shortlisted', 'Interview'].includes(a.status)
   );
@@ -483,7 +491,7 @@ export function Home() {
 
   let hrFilteredApps = hrAllApps;
   if (hrJobFilter !== 'all') {
-    hrFilteredApps = hrFilteredApps.filter((a) => a.jobId === hrJobFilter);
+    hrFilteredApps = hrFilteredApps.filter((a) => String(a.jobId).replace('job-', '') === String(hrJobFilter).replace('job-', ''));
   }
   if (hrStatusFilter !== 'all') {
     hrFilteredApps = hrFilteredApps.filter((a) => a.status === hrStatusFilter);
@@ -1322,7 +1330,7 @@ export function Home() {
                             </span>
                             <button
                               onClick={() => {
-                                const j = (data.jobs || []).find((item) => item.id === app.jobId);
+                                const j = (data.jobs || []).find((item) => String(item.id).replace('job-', '') === String(app.jobId).replace('job-', ''));
                                 if (j) handleOpenJobDetail(j);
                               }}
                               className="text-indigo-600 hover:text-indigo-800 font-bold"
@@ -2339,8 +2347,8 @@ export function Home() {
                       </div>
                     ) : (
                       hrJobs.map((job) => {
-                        const appCount = (data.applications || []).filter((a) => a.jobId === job.id).length;
-                        const isSelected = hrJobFilter === job.id;
+                        const appCount = (data.applications || []).filter((a) => String(a.jobId).replace('job-', '') === String(job.id).replace('job-', '')).length;
+                        const isSelected = hrJobFilter !== 'all' && String(hrJobFilter).replace('job-', '') === String(job.id).replace('job-', '');
 
                         return (
                           <div
@@ -3086,7 +3094,7 @@ export function Home() {
               </div>
 
               {(data.applications || []).some(
-                (a) => a.jobId === selectedJobDetail.id && a.applicantEmail === data.profile?.email
+                (a) => String(a.jobId).replace('job-', '') === String(selectedJobDetail.id).replace('job-', '') && a.applicantEmail === data.profile?.email
               ) ? (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800">
                   <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

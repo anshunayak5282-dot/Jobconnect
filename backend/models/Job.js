@@ -1,14 +1,27 @@
 const { query } = require('../config/db');
 
+const cleanJobId = (id) => {
+  if (typeof id === 'string' && id.startsWith('job-')) {
+    const parsed = parseInt(id.replace('job-', ''), 10);
+    return isNaN(parsed) ? id : parsed;
+  }
+  return id;
+};
+
 const formatJobRow = (row) => {
   if (!row) return null;
+  const recruiterName = row.recruiter_name || row.posted_by_name || '';
+  const recruiterEmail = row.recruiter_email || row.posted_by_email || '';
   return {
     _id: row.id,
     id: row.id,
     title: row.title,
     company: row.company_name,
     companyName: row.company_name,
-    postedBy: row.posted_by,
+    postedBy: recruiterName ? `HR - ${recruiterName}` : (row.posted_by ? String(row.posted_by) : 'HR Recruiter'),
+    posted_by: row.posted_by,
+    postedByEmail: recruiterEmail,
+    postedByName: recruiterName,
     description: row.description,
     location: row.location,
     salaryMin: Number(row.salary_min),
@@ -20,54 +33,73 @@ const formatJobRow = (row) => {
       : Array.isArray(row.skills) ? row.skills : [],
     deadline: row.deadline || 'In 30 days',
     status: row.status,
-    createdAt: row.created_at,
+    createdAt: row.created_at
+      ? (typeof row.created_at === 'string' ? row.created_at.split('T')[0] : new Date(row.created_at).toISOString().split('T')[0])
+      : new Date().toISOString().split('T')[0],
     updatedAt: row.updated_at
   };
 };
 
 const Job = {
-  // Find jobs with filtering
+  // Find jobs with filtering and recruiter details from users table
   async find(filters = {}) {
-    let sql = 'SELECT * FROM `jobs` WHERE 1=1';
+    let sql = `
+      SELECT j.*, u.name AS recruiter_name, u.email AS recruiter_email
+      FROM \`jobs\` j
+      LEFT JOIN \`users\` u ON j.posted_by = u.id
+      WHERE 1=1
+    `;
     const params = [];
 
-    if (filters.status) {
-      sql += ' AND `status` = ?';
+    // Filter by specific status (if status is 'all', do not filter by status)
+    if (filters.status && filters.status !== 'all') {
+      sql += ' AND j.`status` = ?';
       params.push(filters.status);
+    }
+
+    // Role-based recruiter visibility: Show Approved jobs OR this recruiter's own jobs
+    if (filters.forRecruiterId) {
+      sql += ' AND (j.`status` = "Approved" OR j.`posted_by` = ?)';
+      params.push(filters.forRecruiterId);
     }
 
     if (filters.keyword) {
       const kw = `%${filters.keyword}%`;
-      sql += ' AND (`title` LIKE ? OR `company_name` LIKE ? OR `skills` LIKE ? OR `description` LIKE ?)';
+      sql += ' AND (j.`title` LIKE ? OR j.`company_name` LIKE ? OR j.`skills` LIKE ? OR j.`description` LIKE ?)';
       params.push(kw, kw, kw, kw);
     }
 
     if (filters.location) {
-      sql += ' AND `location` LIKE ?';
+      sql += ' AND j.`location` LIKE ?';
       params.push(`%${filters.location}%`);
     }
 
     if (filters.jobType) {
-      sql += ' AND `job_type` = ?';
+      sql += ' AND j.`job_type` = ?';
       params.push(filters.jobType);
     }
 
     if (filters.experience) {
-      sql += ' AND `experience` = ?';
+      sql += ' AND j.`experience` = ?';
       params.push(filters.experience);
     }
 
     if (filters.minSalary) {
-      sql += ' AND `salary_max` >= ?';
+      sql += ' AND j.`salary_max` >= ?';
       params.push(Number(filters.minSalary));
     }
 
     if (filters.postedBy) {
-      sql += ' AND `posted_by` = ?';
+      sql += ' AND j.`posted_by` = ?';
       params.push(filters.postedBy);
     }
 
-    sql += ' ORDER BY `created_at` DESC';
+    if (filters.company || filters.companyName) {
+      sql += ' AND j.`company_name` = ?';
+      params.push(filters.company || filters.companyName);
+    }
+
+    sql += ' ORDER BY j.`created_at` DESC';
 
     const [rows] = await query(sql, params);
     return rows.map(formatJobRow);
@@ -75,7 +107,15 @@ const Job = {
 
   // Find job by ID
   async findById(id) {
-    const [rows] = await query('SELECT * FROM `jobs` WHERE `id` = ? LIMIT 1', [id]);
+    const cleanId = cleanJobId(id);
+    const [rows] = await query(
+      `SELECT j.*, u.name AS recruiter_name, u.email AS recruiter_email
+       FROM \`jobs\` j
+       LEFT JOIN \`users\` u ON j.posted_by = u.id
+       WHERE j.\`id\` = ?
+       LIMIT 1`,
+      [cleanId]
+    );
     return formatJobRow(rows[0]);
   },
 
@@ -92,7 +132,7 @@ const Job = {
       [
         jobData.title,
         jobData.companyName || jobData.company || 'ABC Technologies',
-        jobData.postedBy,
+        jobData.postedBy || jobData.posted_by,
         jobData.description,
         jobData.location,
         Number(jobData.salaryMin || 3),
@@ -110,8 +150,9 @@ const Job = {
 
   // Update status (Approve, Reject, Close)
   async findByIdAndUpdate(id, { status }) {
-    await query('UPDATE `jobs` SET `status` = ? WHERE `id` = ?', [status, id]);
-    return this.findById(id);
+    const cleanId = cleanJobId(id);
+    await query('UPDATE `jobs` SET `status` = ? WHERE `id` = ?', [status, cleanId]);
+    return this.findById(cleanId);
   }
 };
 

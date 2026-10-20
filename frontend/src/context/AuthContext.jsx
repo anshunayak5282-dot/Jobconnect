@@ -260,6 +260,51 @@ export const AuthProvider = ({ children }) => {
     }
   }, [data.currentUserRole, data.currentUser?.role, data.currentUser?.email]);
 
+  // Live MySQL Jobs Fetcher:
+  // Fetches live vacancies from MySQL on every page load and persists across server restarts.
+  // Super Admin receives all jobs; HR receives approved + own jobs; Candidates receive approved jobs.
+  const fetchJobs = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('jobconnect_token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch('/api/jobs', { headers });
+      if (!res.ok) return;
+      const resData = await res.json();
+      if (resData.success && Array.isArray(resData.data)) {
+        setData(prev => {
+          const dbJobs = resData.data;
+          // Keep recent local optimistic jobs posted within the last 15s if not yet indexed in MySQL
+          const now = Date.now();
+          const recentLocalJobs = (prev.jobs || []).filter(j => 
+            typeof j.id === 'string' && 
+            j.id.startsWith('job-') && 
+            (now - parseInt(j.id.replace('job-', ''), 10)) < 15000 &&
+            !dbJobs.some(dbJ => dbJ.title === j.title && dbJ.company === j.company)
+          );
+          return {
+            ...prev,
+            jobs: [...recentLocalJobs, ...dbJobs]
+          };
+        });
+      }
+    } catch (e) {
+      console.error('Failed to fetch live jobs from MySQL:', e);
+    }
+  }, []);
+
+  // Fetch live jobs from MySQL on every page load / initial mount
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  // Refetch live jobs when user role or session identity changes
+  useEffect(() => {
+    fetchJobs();
+  }, [data.currentUserRole, data.currentUser?.id, fetchJobs]);
+
   const toastTimersRef = useRef(new Map());
   const recentToastsRef = useRef(new Map());
 
@@ -356,7 +401,10 @@ export const AuthProvider = ({ children }) => {
 
   const resetAllData = () => {
     setData(initialData);
-    showToast("Reset all platform state back to seed data", "info");
+    showToast("Reset platform session state", "info");
+    setTimeout(() => {
+      fetchJobs();
+    }, 50);
   };
 
   const applyForJob = async (jobId, coverLetter) => {
@@ -437,16 +485,18 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const postNewJob = (jobData) => {
+  const postNewJob = async (jobData) => {
     const hrName = data.currentUser?.name || data.profile?.name;
     const hrEmail = data.currentUser?.email || data.profile?.email;
     const hrId = data.currentUser?.id || data.currentUser?._id;
     const hrCompany = data.currentUser?.company || data.currentUser?.company_name || data.profile?.company || '';
 
+    const tempId = `job-${Date.now()}`;
     const newJob = {
-      id: `job-${Date.now()}`,
+      id: tempId,
       ...jobData,
       company: jobData.company || hrCompany || 'My Company',
+      companyName: jobData.company || hrCompany || 'My Company',
       status: 'Pending', // Sent to Admin
       postedBy: hrName ? `HR - ${hrName}` : 'HR Recruiter',
       posted_by: hrId || 2,
@@ -470,25 +520,41 @@ export const AuthProvider = ({ children }) => {
 
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
-      fetch('/api/jobs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: jobData.title,
-          company: jobData.company,
-          location: jobData.location,
-          salaryMin: jobData.salaryMin,
-          salaryMax: jobData.salaryMax,
-          experience: jobData.experience,
-          jobType: jobData.jobType,
-          skills: Array.isArray(jobData.skills) ? jobData.skills.join(', ') : jobData.skills,
-          description: jobData.description,
-          deadline: jobData.deadline || '2026-12-31'
-        })
-      }).catch(() => {});
+      try {
+        const res = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: jobData.title,
+            company: jobData.company || hrCompany,
+            companyName: jobData.company || hrCompany,
+            location: jobData.location,
+            salaryMin: jobData.salaryMin,
+            salaryMax: jobData.salaryMax,
+            experience: jobData.experience,
+            jobType: jobData.jobType,
+            skills: Array.isArray(jobData.skills) ? jobData.skills.join(', ') : jobData.skills,
+            description: jobData.description,
+            deadline: jobData.deadline || '2026-12-31'
+          })
+        });
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          const createdJob = resData.data;
+          setData(prev => ({
+            ...prev,
+            jobs: [
+              createdJob,
+              ...(prev.jobs || []).filter(j => j.id !== tempId && j.id !== createdJob.id)
+            ]
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to post job to MySQL:', e);
+      }
     }
 
     showToast("Job submitted! Awaiting Super Admin approval.", "info");
@@ -516,10 +582,14 @@ export const AuthProvider = ({ children }) => {
     showToast(`Candidate status updated to "${status}"!`, 'success');
   };
 
-  const approveJob = (jobId) => {
+  const approveJob = async (jobId) => {
+    const numericId = typeof jobId === 'string' && jobId.startsWith('job-')
+      ? parseInt(jobId.replace('job-', ''), 10)
+      : jobId;
+
     setData(prev => {
-      const job = prev.jobs.find(j => j.id === jobId);
-      const updatedJobs = prev.jobs.map(j => j.id === jobId ? { ...j, status: 'Approved' } : j);
+      const job = prev.jobs.find(j => j.id === jobId || j.id === numericId);
+      const updatedJobs = prev.jobs.map(j => (j.id === jobId || j.id === numericId) ? { ...j, status: 'Approved' } : j);
       const newNotif = {
         id: `n-${Date.now()}`,
         title: "Job Approved by Admin",
@@ -535,14 +605,65 @@ export const AuthProvider = ({ children }) => {
       };
     });
 
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/approve`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          const updated = resData.data;
+          setData(prev => ({
+            ...prev,
+            jobs: (prev.jobs || []).map(j => (j.id === jobId || j.id === numericId || j.id === updated.id) ? updated : j)
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to sync job approval to MySQL:', e);
+      }
+    }
+
     showToast("Job opening verified and published live!", "success");
   };
 
-  const rejectJob = (jobId) => {
+  const rejectJob = async (jobId) => {
+    const numericId = typeof jobId === 'string' && jobId.startsWith('job-')
+      ? parseInt(jobId.replace('job-', ''), 10)
+      : jobId;
+
     setData(prev => ({
       ...prev,
-      jobs: prev.jobs.map(j => j.id === jobId ? { ...j, status: 'Rejected' } : j)
+      jobs: prev.jobs.map(j => (j.id === jobId || j.id === numericId) ? { ...j, status: 'Rejected' } : j)
     }));
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/reject`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const resData = await res.json();
+        if (resData.success && resData.data) {
+          const updated = resData.data;
+          setData(prev => ({
+            ...prev,
+            jobs: (prev.jobs || []).map(j => (j.id === jobId || j.id === numericId || j.id === updated.id) ? updated : j)
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to sync job rejection to MySQL:', e);
+      }
+    }
+
     showToast("Job rejected", "info");
   };
 
@@ -1086,6 +1207,9 @@ export const AuthProvider = ({ children }) => {
       currentUser: user,
       profile: userProfile
     }));
+    setTimeout(() => {
+      fetchJobs();
+    }, 50);
   };
 
   const logout = () => {
@@ -1105,6 +1229,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('jobconnect_state', JSON.stringify(state));
     } catch (e) {}
     showToast('Logged out successfully', 'info', 3000);
+    setTimeout(() => {
+      fetchJobs();
+    }, 50);
   };
 
   return (
@@ -1119,6 +1246,7 @@ export const AuthProvider = ({ children }) => {
       applyForJob,
       toggleSaveJob,
       postNewJob,
+      fetchJobs,
       updateApplicationStatus,
       approveJob,
       rejectJob,

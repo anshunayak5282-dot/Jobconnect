@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export function SeekerProfileTab({
   profile = {},
@@ -7,6 +7,7 @@ export function SeekerProfileTab({
   userInitials = 'U',
   onOpenEditProfileModal,
   previewResume,
+  uploadResume,
   simulateUploadResume,
   updateProfile,
   addSkill,
@@ -19,6 +20,27 @@ export function SeekerProfileTab({
   removeProject,
   showToast
 }) {
+  // Native file input ref for resume
+  const fileInputRef = useRef(null);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+
+  const handleResumeFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return; // User cancelled or closed the file dialog gracefully
+
+    setIsUploadingResume(true);
+    try {
+      if (uploadResume) {
+        await uploadResume(file);
+      } else if (simulateUploadResume) {
+        await simulateUploadResume(file);
+      }
+    } finally {
+      setIsUploadingResume(false);
+      e.target.value = '';
+    }
+  };
+
   // Summary editor state
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [summaryText, setSummaryText] = useState(profile?.about || '');
@@ -210,14 +232,33 @@ export function SeekerProfileTab({
               </div>
             )}
 
+            {/* Native Hidden File Input for Resume */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={handleResumeFileChange}
+            />
+
             <div className="mt-3 flex gap-2">
               <button
-                onClick={simulateUploadResume}
-                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                type="button"
+                disabled={isUploadingResume}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Upload New
+                {isUploadingResume ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <span>{profile?.resumeName ? 'Change Resume' : 'Upload Resume'}</span>
+                )}
               </button>
               <button
+                type="button"
                 onClick={() => previewResume(profile?.name)}
                 className="flex-1 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition"
               >

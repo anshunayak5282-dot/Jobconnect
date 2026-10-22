@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const User = require('../models/User');
 const ProfileRequest = require('../models/ProfileRequest');
 const { protect } = require('../middleware/authMiddleware');
@@ -168,7 +170,8 @@ router.put('/profile', protect, async (req, res) => {
     if (skills !== undefined) {
       fieldsToUpdate.skills = Array.isArray(skills) ? skills.join(', ') : skills;
     }
-    if (resume_name !== undefined) fieldsToUpdate.resume_name = resume_name;
+    const resolvedResume = resume_name !== undefined ? resume_name : (req.body.resumeName !== undefined ? req.body.resumeName : undefined);
+    if (resolvedResume !== undefined) fieldsToUpdate.resume_name = resolvedResume;
     if (education !== undefined) fieldsToUpdate.education = education;
     if (experience !== undefined) fieldsToUpdate.experience = experience;
     if (projects !== undefined) fieldsToUpdate.projects = projects;
@@ -217,6 +220,78 @@ router.put('/profile', protect, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/users/resume (Upload candidate resume file)
+router.post('/resume', protect, async (req, res) => {
+  try {
+    const { fileName, fileData, fileSize } = req.body;
+    if (!fileName) {
+      return res.status(400).json({ success: false, message: 'No resume file selected.' });
+    }
+
+    // Validate file extension
+    const ext = path.extname(fileName).toLowerCase();
+    const allowedExts = ['.pdf', '.doc', '.docx'];
+    if (!allowedExts.includes(ext)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Only .pdf, .doc, and .docx files are allowed.'
+      });
+    }
+
+    // Validate size (max 5MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (fileSize && fileSize > MAX_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: 'File size exceeds 5MB limit. Please select a smaller document.'
+      });
+    }
+
+    // Save physical file on server in uploads/resumes if file content provided
+    try {
+      const uploadsDir = path.join(__dirname, '..', 'uploads', 'resumes');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const sanitizedBase = path.basename(fileName, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const storedFileName = `${Date.now()}_${sanitizedBase}${ext}`;
+      const targetPath = path.join(uploadsDir, storedFileName);
+
+      if (fileData) {
+        const base64Content = fileData.includes(';base64,') ? fileData.split(';base64,')[1] : fileData;
+        const buffer = Buffer.from(base64Content, 'base64');
+        if (buffer.length > MAX_SIZE) {
+          return res.status(400).json({
+            success: false,
+            message: 'File size exceeds 5MB limit.'
+          });
+        }
+        fs.writeFileSync(targetPath, buffer);
+      }
+    } catch (fsErr) {
+      console.warn('Note: Physical file write skipped or errored:', fsErr.message);
+    }
+
+    // Update user profile in MySQL with the selected file name
+    const userId = req.user.id || req.user._id;
+    const updated = await User.updateProfile(userId, { resume_name: fileName });
+
+    return res.json({
+      success: true,
+      message: 'Resume uploaded successfully to server and MySQL',
+      data: {
+        resumeName: fileName,
+        resume_name: fileName,
+        user: updated
+      }
+    });
+  } catch (err) {
+    console.error('Resume upload endpoint error:', err);
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 });
 

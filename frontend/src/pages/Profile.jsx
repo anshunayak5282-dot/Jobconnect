@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export const Profile = () => {
-  const { data, addSkill, removeSkill, showToast } = useAuth();
+  const { data, addSkill, removeSkill, showToast, uploadResume } = useAuth();
   const [newSkill, setNewSkill] = useState('');
+  const fileInputRef = useRef(null);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+
+  const handleResumeFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingResume(true);
+    try {
+      if (uploadResume) {
+        await uploadResume(file);
+      }
+    } finally {
+      setIsUploadingResume(false);
+      e.target.value = '';
+    }
+  };
   const p = data.profile;
 
   const handleAdd = (e) => {
@@ -68,14 +85,33 @@ export const Profile = () => {
               </div>
             </div>
 
+            {/* Native Hidden File Input for Resume */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={handleResumeFileChange}
+            />
+
             <div className="mt-3 flex gap-2">
               <button
-                onClick={() => showToast("Simulated upload: Resume is current!", "info")}
-                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+                type="button"
+                disabled={isUploadingResume}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Upload New
+                {isUploadingResume ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <span>{p?.resumeName ? 'Change Resume' : 'Upload Resume'}</span>
+                )}
               </button>
               <button
+                type="button"
                 onClick={previewResume}
                 className="flex-1 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition"
               >

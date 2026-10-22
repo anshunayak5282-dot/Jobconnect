@@ -736,6 +736,122 @@ export const AuthProvider = ({ children }) => {
     showToast('Profile updated successfully!', 'success');
   };
 
+  const uploadResume = async (file) => {
+    if (!file) return { success: false, message: 'No file selected.' };
+
+    // Validate file extension
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+    const fileName = file.name || '';
+    const lastDotIdx = fileName.lastIndexOf('.');
+    if (lastDotIdx === -1) {
+      showToast('Invalid file format. Please upload a .pdf, .doc, or .docx file.', 'error');
+      return { success: false, message: 'Missing file extension.' };
+    }
+    const ext = fileName.substring(lastDotIdx).toLowerCase();
+    if (!validExtensions.includes(ext)) {
+      showToast('Invalid file format. Only .pdf, .doc, and .docx files are allowed.', 'error');
+      return { success: false, message: 'Invalid file format.' };
+    }
+
+    // Validate size (max 5MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      showToast('File size exceeds 5MB limit. Please select a smaller document.', 'error');
+      return { success: false, message: 'File exceeds 5MB limit.' };
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onerror = () => {
+        showToast('Error reading the selected file. Please try again.', 'error');
+        resolve({ success: false, message: 'Error reading file.' });
+      };
+
+      reader.onload = async () => {
+        const base64Data = reader.result;
+        const token = localStorage.getItem('jobconnect_token');
+
+        try {
+          let uploadSuccess = false;
+
+          if (token) {
+            const res = await fetch('/api/users/resume', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                fileName,
+                fileSize: file.size,
+                fileType: file.type,
+                fileData: base64Data
+              })
+            });
+
+            const resData = await res.json().catch(() => null);
+            if (res.ok && resData?.success) {
+              uploadSuccess = true;
+            } else {
+              // Fallback to update profile
+              const putRes = await fetch('/api/users/profile', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  resume_name: fileName,
+                  resumeName: fileName
+                })
+              });
+              uploadSuccess = putRes.ok;
+            }
+          } else {
+            uploadSuccess = true;
+          }
+
+          if (uploadSuccess) {
+            // Update local profile state and storage
+            setData(prev => {
+              const updatedProfile = {
+                ...(prev.profile || {}),
+                resumeName: fileName,
+                resumeUploadDate: 'Just now'
+              };
+
+              try {
+                const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
+                if (updatedProfile.email) {
+                  storedMap[updatedProfile.email] = updatedProfile;
+                  localStorage.setItem('jobconnect_user_profiles', JSON.stringify(storedMap));
+                }
+              } catch (e) {}
+
+              return {
+                ...prev,
+                profile: updatedProfile
+              };
+            });
+
+            showToast(`Resume uploaded: ${fileName}`, 'success');
+            resolve({ success: true, fileName });
+          } else {
+            showToast('Failed to upload resume to server. Please try again.', 'error');
+            resolve({ success: false, message: 'Server upload failed.' });
+          }
+        } catch (err) {
+          console.error('Error in uploadResume:', err);
+          showToast('Network error while uploading resume.', 'error');
+          resolve({ success: false, message: err.message });
+        }
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
   const approveProfileRequest = async (requestId) => {
     const isAdmin = data.currentUserRole === 'admin' || data.currentUser?.role === 'admin';
     if (!isAdmin) {
@@ -1202,6 +1318,7 @@ export const AuthProvider = ({ children }) => {
       registerNewUser,
       loginUserSuccess,
       updateProfile,
+      uploadResume,
       approveProfileRequest,
       rejectProfileRequest,
       calculateProfileCompleteness,

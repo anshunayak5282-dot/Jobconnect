@@ -16,6 +16,14 @@ export const userService = {
     });
   },
 
+  // Candidate: Upload resume file to server and MySQL
+  async uploadResume({ fileName, fileData, fileSize, fileType }) {
+    return apiClient('/api/users/resume', {
+      method: 'POST',
+      body: JSON.stringify({ fileName, fileData, fileSize, fileType })
+    });
+  },
+
   // Super Admin: Fetch all pending HR profile moderation requests
   async getProfileRequests() {
     return apiClient('/api/users/profile-requests', {

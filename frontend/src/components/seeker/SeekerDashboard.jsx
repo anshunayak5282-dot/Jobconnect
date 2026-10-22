@@ -35,6 +35,7 @@ export function SeekerDashboard({
   onOpenJobDetail,
   onOpenEditProfileModal,
   previewResume,
+  uploadResume,
   simulateUploadResume,
   updateProfile,
   addSkill,
@@ -103,6 +104,7 @@ export function SeekerDashboard({
           userInitials={userInitials}
           onOpenEditProfileModal={onOpenEditProfileModal}
           previewResume={previewResume}
+          uploadResume={uploadResume}
           simulateUploadResume={simulateUploadResume}
           updateProfile={updateProfile}
           addSkill={addSkill}

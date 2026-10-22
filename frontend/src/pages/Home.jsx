@@ -43,6 +43,7 @@ export function Home() {
     addProject,
     removeProject,
     updateProfile,
+    uploadResume,
     logout
   } = useAuth();
 
@@ -371,15 +372,9 @@ export function Home() {
     );
   };
 
-  const simulateUploadResume = () => {
-    const candidateName = (data.profile?.name || 'My').replace(/\s+/g, '_');
-    const defaultName = `${candidateName}_Resume.pdf`;
-    const newName = prompt('Enter resume filename to upload (e.g. My_Resume.pdf):', defaultName);
-    if (newName && newName.trim()) {
-      if (updateProfile) {
-        updateProfile({ resumeName: newName.trim(), resumeUploadDate: 'Just now' });
-      }
-      showToast(`Resume attached: ${newName.trim()}`, 'success');
+  const handleUploadResume = async (file) => {
+    if (uploadResume && file) {
+      await uploadResume(file);
     }
   };
 
@@ -527,7 +522,8 @@ export function Home() {
             onOpenJobDetail={handleOpenJobDetail}
             onOpenEditProfileModal={handleOpenEditProfile}
             previewResume={previewResume}
-            simulateUploadResume={simulateUploadResume}
+            uploadResume={uploadResume}
+            simulateUploadResume={handleUploadResume}
             updateProfile={updateProfile}
             addSkill={addSkill}
             removeSkill={removeSkill}

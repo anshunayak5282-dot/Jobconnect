@@ -24,7 +24,7 @@ export function RegisterForm({
     <form onSubmit={onSubmit} autoComplete="off" className="space-y-3.5 text-xs">
       <div>
         <label className="block font-bold text-slate-700 mb-1">I want to register as:</label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
           <label className="cursor-pointer">
             <input
               type="radio"
@@ -126,7 +126,7 @@ export function RegisterForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block font-bold text-slate-700 mb-1">Password *</label>
           <input

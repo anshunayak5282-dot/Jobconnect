@@ -7,18 +7,18 @@ export function AdminProfileModeration({
   onOpenRejectModal
 }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
-        <div>
-          <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+        <div className="min-w-0">
+          <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2 break-words">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0"></span>
             HR Recruiter Profile Verification & Approval Queue
           </h3>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 break-words mt-0.5">
             Review and verify credential changes requested by recruiters before updating their official profiles in MySQL.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           <span className="text-xs bg-purple-50 text-purple-800 px-3 py-1 rounded-full font-bold border border-purple-200">
             {pendingProfileRequests.length} Pending Approval
           </span>
@@ -41,27 +41,27 @@ export function AdminProfileModeration({
             const prop = req.proposed_data || {};
 
             return (
-              <div key={req.id} className="p-5 bg-slate-50/80 border border-purple-200 rounded-2xl text-xs space-y-4 transition hover:border-purple-300">
+              <div key={req.id} className="p-3.5 sm:p-5 bg-slate-50/80 border border-purple-200 rounded-2xl text-xs space-y-4 transition hover:border-purple-300">
                 {/* Request Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-purple-100 gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 font-extrabold flex items-center justify-center text-sm shadow-sm">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 font-extrabold flex items-center justify-center text-sm shadow-sm shrink-0">
                       {(req.userName || 'HR').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-slate-900 text-sm">{req.userName}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="font-black text-slate-900 text-sm break-words">{req.userName}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 shrink-0">
                           {req.companyName || cur.company || 'Enterprise Recruiter'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 font-medium">
+                      <p className="text-[11px] text-slate-500 font-medium break-all mt-0.5">
                         {req.userEmail} • Submitted {req.created_at ? new Date(req.created_at).toLocaleString() : 'Recently'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                       Pending Super Admin Review
@@ -177,11 +177,11 @@ export function AdminProfileModeration({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
                     <button
                       type="button"
                       onClick={() => onOpenRejectModal(req)}
-                      className="px-3.5 py-2 rounded-xl border border-rose-300 text-rose-700 font-bold hover:bg-rose-50 transition"
+                      className="px-3.5 py-2 rounded-xl border border-rose-300 text-rose-700 font-bold hover:bg-rose-50 transition flex-1 sm:flex-initial text-center"
                     >
                       Reject Request
                     </button>
@@ -189,13 +189,13 @@ export function AdminProfileModeration({
                       type="button"
                       disabled={isSelf}
                       onClick={() => onApproveProfileRequest(req.id)}
-                      className={`px-4 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-md ${
+                      className={`px-4 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5 shadow-md flex-1 sm:flex-initial ${
                         isSelf
                           ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
                           : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
                       }`}
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                       </svg>
                       <span>Approve & Update MySQL</span>

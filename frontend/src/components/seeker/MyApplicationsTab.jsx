@@ -10,7 +10,7 @@ export function MyApplicationsTab({
 }) {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
         <div>
           <h2 className="text-xl font-extrabold text-slate-900">Application Status Tracker</h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -18,16 +18,16 @@ export function MyApplicationsTab({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500">Live Stages:</span>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-xs font-medium text-slate-500 mr-1">Live Stages:</span>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">Applied</span>
-          <span>→</span>
+          <span className="text-slate-400">→</span>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800">Under Review</span>
-          <span>→</span>
+          <span className="text-slate-400">→</span>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800">Shortlisted</span>
-          <span>→</span>
+          <span className="text-slate-400">→</span>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">Interview</span>
-          <span>→</span>
+          <span className="text-slate-400">→</span>
           <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">Selected</span>
         </div>
       </div>
@@ -55,15 +55,15 @@ export function MyApplicationsTab({
             const currentStageIdx = stages.indexOf(app.status);
 
             return (
-              <div key={app.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+              <div key={app.id} className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-                  <div>
-                    <h3 className="font-extrabold text-slate-900 text-base">{job.title}</h3>
-                    <p className="text-xs font-semibold text-slate-600">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-extrabold text-slate-900 text-base break-words">{job.title}</h3>
+                    <p className="text-xs font-semibold text-slate-600 break-words mt-0.5">
                       {job.company || job.companyName} • {job.location} • Applied on {app.appliedAt}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                     <span className="text-xs text-slate-400">Current Status:</span>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-black ${
@@ -87,30 +87,85 @@ export function MyApplicationsTab({
 
                 {!isRejected ? (
                   <div className="pt-2">
-                    <div className="grid grid-cols-5 gap-1 relative text-center">
+                    {/* Small screens vertical timeline layout (< sm) to prevent clipping & overlap */}
+                    <div className="sm:hidden space-y-2.5 py-1 px-1">
                       {stages.map((st, idx) => {
                         const isPassed = idx <= currentStageIdx;
                         const isCurrent = idx === currentStageIdx;
                         let circleClass = 'bg-slate-200 text-slate-500';
-                        let labelClass = 'text-slate-400';
+                        let labelClass = 'text-slate-500 font-medium';
+                        let statusText = 'Pending';
+
                         if (isPassed) {
-                          circleClass = 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30';
-                          labelClass = 'text-indigo-900 font-bold';
+                          circleClass = 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/30';
+                          labelClass = 'text-indigo-950 font-bold';
+                          statusText = 'Completed';
                         }
-                        if (isCurrent && st === 'Selected') {
-                          circleClass = 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30';
-                          labelClass = 'text-emerald-700 font-black';
+                        if (isCurrent) {
+                          statusText = st === 'Selected' ? 'Selected & Offered' : 'In Progress';
+                          if (st === 'Selected') {
+                            circleClass = 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30';
+                            labelClass = 'text-emerald-700 font-black';
+                          } else {
+                            circleClass = 'bg-indigo-600 text-white ring-4 ring-indigo-100 font-extrabold';
+                            labelClass = 'text-indigo-700 font-black';
+                          }
                         }
 
                         return (
-                          <div key={st} className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full ${circleClass} flex items-center justify-center font-bold text-xs transition duration-300`}>
-                              {isPassed ? '✓' : idx + 1}
+                          <div key={st} className="flex items-center gap-3">
+                            <div className="relative flex items-center justify-center shrink-0">
+                              <div className={`w-6 h-6 rounded-full ${circleClass} flex items-center justify-center font-bold text-[11px] z-10 transition duration-300`}>
+                                {isPassed ? '✓' : idx + 1}
+                              </div>
+                              {idx < stages.length - 1 && (
+                                <div className={`absolute top-6 w-0.5 h-3 ${isPassed && idx < currentStageIdx ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+                              )}
                             </div>
-                            <span className={`text-[10px] mt-1.5 ${labelClass}`}>{st}</span>
+                            <div className="flex items-center justify-between flex-1 min-w-0 bg-slate-50/80 px-3 py-1.5 rounded-xl border border-slate-100">
+                              <span className={`text-xs ${labelClass} truncate mr-2`}>{st}</span>
+                              <span className={`text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-full ${
+                                isCurrent
+                                  ? 'bg-indigo-100 text-indigo-700 font-bold'
+                                  : isPassed
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'text-slate-400'
+                              }`}>
+                                {statusText}
+                              </span>
+                            </div>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Tablet/Desktop horizontal stage grid (>= sm) */}
+                    <div className="hidden sm:block">
+                      <div className="grid grid-cols-5 gap-1 relative text-center">
+                        {stages.map((st, idx) => {
+                          const isPassed = idx <= currentStageIdx;
+                          const isCurrent = idx === currentStageIdx;
+                          let circleClass = 'bg-slate-200 text-slate-500';
+                          let labelClass = 'text-slate-400';
+                          if (isPassed) {
+                            circleClass = 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30';
+                            labelClass = 'text-indigo-900 font-bold';
+                          }
+                          if (isCurrent && st === 'Selected') {
+                            circleClass = 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30';
+                            labelClass = 'text-emerald-700 font-black';
+                          }
+
+                          return (
+                            <div key={st} className="flex flex-col items-center">
+                              <div className={`w-8 h-8 rounded-full ${circleClass} flex items-center justify-center font-bold text-xs transition duration-300`}>
+                                {isPassed ? '✓' : idx + 1}
+                              </div>
+                              <span className={`text-[10px] mt-1.5 ${labelClass}`}>{st}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -122,19 +177,21 @@ export function MyApplicationsTab({
                   </div>
                 )}
 
-                <div className="pt-2 flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <span className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    Attached: <strong className="text-slate-700">{app.resumeUrl}</strong>
-                  </span>
+                    <span className="truncate">
+                      Attached: <strong className="text-slate-700 break-all" title={app.resumeUrl}>{app.resumeUrl}</strong>
+                    </span>
+                  </div>
                   <button
                     onClick={() => {
                       const j = jobs.find((item) => matchesJobId(item.id, app.jobId));
                       if (j) onOpenJobDetail(j);
                     }}
-                    className="text-indigo-600 hover:text-indigo-800 font-bold"
+                    className="text-indigo-600 hover:text-indigo-800 font-bold shrink-0 self-start sm:self-auto"
                   >
                     View Vacancy Info →
                   </button>

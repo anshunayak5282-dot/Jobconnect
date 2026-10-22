@@ -10,16 +10,16 @@ export function PostJobModal({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 animate-fade-in p-6 sm:p-8">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div>
-            <h3 className="text-xl font-black text-slate-900">Post New Vacancy</h3>
-            <p className="text-xs text-slate-500">Will be sent to Super Admin for verification.</p>
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 animate-fade-in p-4 sm:p-6 sm:p-8">
+        <div className="flex items-start justify-between pb-4 border-b border-slate-100 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 break-words">Post New Vacancy</h3>
+            <p className="text-xs text-slate-500 break-words mt-0.5">Will be sent to Super Admin for verification.</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+            className="text-slate-400 hover:text-slate-600 text-xl font-bold shrink-0 p-1"
           >
             ✕
           </button>
@@ -38,7 +38,7 @@ export function PostJobModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Company *</label>
               <input
@@ -66,7 +66,7 @@ export function PostJobModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Job Type *</label>
               <select
@@ -94,7 +94,7 @@ export function PostJobModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 mb-1">Min Salary (₹ LPA) *</label>
               <input
@@ -145,17 +145,17 @@ export function PostJobModal({
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2.5 sm:gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-600 hover:bg-slate-100 transition text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition shadow-md shadow-indigo-600/30"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition shadow-md shadow-indigo-600/30 text-center"
             >
               Submit for Approval
             </button>

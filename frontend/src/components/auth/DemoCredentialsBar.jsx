@@ -13,7 +13,7 @@ export function DemoCredentialsBar({ onFillDemoCredentials }) {
         <span className="text-[10px] text-indigo-600 font-semibold">1-Click Auto Fill</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2">
         <button
           type="button"
           onClick={() => onFillDemoCredentials('user')}

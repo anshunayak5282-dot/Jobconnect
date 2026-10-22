@@ -19,7 +19,7 @@ export function LoginForm({
     <form onSubmit={onSubmit} className="space-y-4 text-xs">
       <div>
         <label className="block font-bold text-slate-700 mb-1.5">Sign in as:</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-3 gap-2">
           <label className="cursor-pointer">
             <input
               type="radio"

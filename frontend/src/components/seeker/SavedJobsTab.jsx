@@ -9,8 +9,8 @@ export function SavedJobsTab({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200">
-        <h2 className="text-xl font-extrabold text-slate-900">Bookmarked Vacancies</h2>
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200">
+        <h2 className="text-xl font-extrabold text-slate-900 break-words">Bookmarked Vacancies</h2>
         <p className="text-xs text-slate-500 mt-0.5">Jobs you have saved to apply for later.</p>
       </div>
 
@@ -26,7 +26,7 @@ export function SavedJobsTab({
           {savedJobs.map((job) => (
             <div
               key={job.id}
-              className="bg-white rounded-2xl p-5 border border-slate-200 hover:border-indigo-300 shadow-sm flex flex-col justify-between gap-4"
+              className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 hover:border-indigo-300 shadow-sm flex flex-col justify-between gap-3.5 sm:gap-4"
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -40,8 +40,8 @@ export function SavedJobsTab({
                     Remove
                   </button>
                 </div>
-                <h3 className="font-bold text-slate-900 text-base mt-2">{job.title}</h3>
-                <p className="text-xs text-slate-500 font-semibold">
+                <h3 className="font-bold text-slate-900 text-base mt-2 break-words">{job.title}</h3>
+                <p className="text-xs text-slate-500 font-semibold break-words">
                   {job.company || job.companyName} • {job.location}
                 </p>
                 <p className="text-xs font-extrabold text-emerald-700 mt-1">
@@ -49,11 +49,11 @@ export function SavedJobsTab({
                 </p>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
                 <span className="text-[10px] text-slate-400">Deadline: {job.deadline || 'In 30 days'}</span>
                 {profileCompleteness < 100 ? (
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex flex-col items-end gap-1 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-1.5 justify-end">
                       <button
                         onClick={onRedirectToProfile}
                         className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition"
@@ -76,7 +76,7 @@ export function SavedJobsTab({
                 ) : (
                   <button
                     onClick={() => onOpenJobDetail(job)}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition text-center"
                   >
                     Apply Now
                   </button>

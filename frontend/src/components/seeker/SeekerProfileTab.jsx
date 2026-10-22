@@ -118,17 +118,17 @@ export function SeekerProfileTab({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column Profile Card */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm text-center">
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-500/20">
               {userInitials}
             </div>
-            <h2 className="text-xl font-black text-slate-900 mt-3">{profile?.name || 'Candidate'}</h2>
-            <p className="text-xs font-bold text-indigo-600">{profile?.title || 'Job Seeker'}</p>
-            <p className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h2 className="text-xl font-black text-slate-900 mt-3 break-words">{profile?.name || 'Candidate'}</h2>
+            <p className="text-xs font-bold text-indigo-600 break-words">{profile?.title || 'Job Seeker'}</p>
+            <p className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1 break-words">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
               </svg>
-              {profile?.location || 'Location Not Set'}
+              <span>{profile?.location || 'Location Not Set'}</span>
             </p>
 
             <button
@@ -145,7 +145,7 @@ export function SeekerProfileTab({
               <div className="flex items-center justify-between text-xs font-bold mb-1">
                 <span className="text-slate-700">Profile Completeness</span>
                 <span className={profileCompleteness === 100 ? "text-emerald-600 font-extrabold" : profileCompleteness >= 40 ? "text-amber-600 font-bold" : "text-rose-500 font-bold"}>
-                  {profileCompleteness}% ({profileCompleteness === 100 ? 'Complete - Applications Active' : 'Incomplete - 100% Required'})
+                  {profileCompleteness}% ({profileCompleteness === 100 ? 'Complete' : '100% Required'})
                 </span>
               </div>
               <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
@@ -172,34 +172,34 @@ export function SeekerProfileTab({
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 text-xs text-left text-slate-600">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                <span>{profile?.email || 'No email registered'}</span>
+                <span className="break-all">{profile?.email || 'No email registered'}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                 </svg>
-                <span>{profile?.phone || 'Phone not set'}</span>
+                <span className="break-all">{profile?.phone || 'Phone not set'}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
             <h3 className="font-extrabold text-sm text-slate-900 mb-3 flex items-center justify-between">
               <span>Active Resume</span>
               <span className="text-xs text-emerald-600 font-semibold">{profile?.resumeName ? 'Verified' : 'Optional'}</span>
             </h3>
 
             {profile?.resumeName ? (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-lg bg-rose-500 text-white font-black text-xs flex items-center justify-center">PDF</span>
-                  <div className="text-xs">
-                    <p className="font-bold text-slate-800 truncate max-w-[150px]">{profile.resumeName}</p>
-                    <p className="text-[10px] text-slate-400">Attached to all applications</p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span className="w-8 h-8 rounded-lg bg-rose-500 text-white font-black text-xs flex items-center justify-center shrink-0">PDF</span>
+                  <div className="text-xs min-w-0 flex-1">
+                    <p className="font-bold text-slate-800 truncate" title={profile.resumeName}>{profile.resumeName}</p>
+                    <p className="text-[10px] text-slate-400 truncate">Attached to all applications</p>
                   </div>
                 </div>
               </div>
@@ -230,14 +230,14 @@ export function SeekerProfileTab({
         {/* Right Column Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Summary Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-extrabold text-sm text-slate-900">Professional Summary</h3>
                 <p className="text-[11px] text-slate-400">Brief overview of your career and technical background</p>
               </div>
               {isEditingSummary ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start sm:self-auto">
                   <button
                     type="button"
                     onClick={() => {
@@ -263,7 +263,7 @@ export function SeekerProfileTab({
                 <button
                   type="button"
                   onClick={() => setIsEditingSummary(true)}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -306,8 +306,8 @@ export function SeekerProfileTab({
           </div>
 
           {/* Technical Skills Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-sm text-slate-900">Technical Skills</h3>
               <span className="text-xs text-slate-400">{skillsList.length} skills listed</span>
             </div>
@@ -346,7 +346,7 @@ export function SeekerProfileTab({
                   }
                 }}
                 placeholder="Add skill (e.g. Docker, TypeScript)..."
-                className="text-xs p-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1"
+                className="text-xs p-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1 min-w-0"
               />
               <button
                 onClick={() => {
@@ -355,7 +355,7 @@ export function SeekerProfileTab({
                     setNewSkillText('');
                   }
                 }}
-                className="px-3.5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition"
+                className="px-3.5 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition shrink-0"
               >
                 Add
               </button>
@@ -363,8 +363,8 @@ export function SeekerProfileTab({
           </div>
 
           {/* Education Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-extrabold text-sm text-slate-900">Education</h3>
                 <p className="text-[11px] text-slate-400">{(profile?.education || []).length} qualifications recorded</p>
@@ -372,7 +372,7 @@ export function SeekerProfileTab({
               <button
                 type="button"
                 onClick={() => setShowAddEdu((prev) => !prev)}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={showAddEdu ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
@@ -454,10 +454,10 @@ export function SeekerProfileTab({
                 </div>
               ) : (
                 (profile?.education || []).map((edu, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 hover:bg-indigo-50/20 rounded-xl border border-slate-200 text-xs flex items-start justify-between transition group">
-                    <div>
-                      <p className="font-bold text-slate-900">{edu.degree}</p>
-                      <p className="text-slate-600 mt-0.5">{edu.institution}</p>
+                  <div key={idx} className="p-3.5 bg-slate-50 hover:bg-indigo-50/20 rounded-xl border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-start justify-between gap-2 transition group">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 break-words">{edu.degree}</p>
+                      <p className="text-slate-600 mt-0.5 break-words">{edu.institution}</p>
                       {edu.year && (
                         <span className="inline-block mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-100/60 px-2 py-0.5 rounded-full">
                           Graduation: {edu.year}
@@ -468,7 +468,7 @@ export function SeekerProfileTab({
                       type="button"
                       onClick={() => removeEducation(idx)}
                       title="Remove education entry"
-                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition opacity-80 group-hover:opacity-100"
+                      className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition opacity-80 group-hover:opacity-100 self-end sm:self-start shrink-0"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -481,8 +481,8 @@ export function SeekerProfileTab({
           </div>
 
           {/* Experience Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="font-extrabold text-sm text-slate-900">Experience</h3>
                 <p className="text-[11px] text-slate-400">{(profile?.experience || []).length} positions recorded</p>
@@ -490,7 +490,7 @@ export function SeekerProfileTab({
               <button
                 type="button"
                 onClick={() => setShowAddExp((prev) => !prev)}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={showAddExp ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
@@ -594,14 +594,14 @@ export function SeekerProfileTab({
               ) : (
                 (profile?.experience || []).map((exp, idx) => (
                   <div key={idx} className="p-3.5 bg-slate-50 hover:bg-indigo-50/20 rounded-xl border border-slate-200 text-xs transition group">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{exp.position}</p>
-                        <p className="text-indigo-600 font-semibold mt-0.5">{exp.company}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 text-sm break-words">{exp.position}</p>
+                        <p className="text-indigo-600 font-semibold mt-0.5 break-words">{exp.company}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                         {(exp.startDate || exp.endDate) && (
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-full shrink-0">
                             {exp.startDate} – {exp.endDate}
                           </span>
                         )}
@@ -618,7 +618,7 @@ export function SeekerProfileTab({
                       </div>
                     </div>
                     {exp.description && (
-                      <p className="text-slate-600 mt-2 leading-relaxed bg-white/70 p-2.5 rounded-lg border border-slate-100">
+                      <p className="text-slate-600 mt-2 leading-relaxed bg-white/70 p-2.5 rounded-lg border border-slate-100 break-words">
                         {exp.description}
                       </p>
                     )}
@@ -629,8 +629,8 @@ export function SeekerProfileTab({
           </div>
 
           {/* Featured Projects Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2.5 sm:gap-0">
               <div>
                 <h3 className="font-extrabold text-sm text-slate-900">Featured Projects</h3>
                 <p className="text-[11px] text-slate-400">{(profile?.projects || []).length} projects showcased</p>
@@ -638,7 +638,7 @@ export function SeekerProfileTab({
               <button
                 type="button"
                 onClick={() => setShowAddProj((prev) => !prev)}
-                className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5"
+                className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={showAddProj ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
@@ -722,7 +722,7 @@ export function SeekerProfileTab({
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {(profile?.projects || []).length === 0 ? (
-                <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl col-span-2">
+                <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl col-span-1 sm:col-span-2">
                   <p className="text-xs text-slate-500 font-medium">No featured projects added yet.</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">Click "+ Add Project" above to showcase your work to recruiters.</p>
                 </div>
@@ -730,20 +730,20 @@ export function SeekerProfileTab({
                 (profile?.projects || []).map((proj, idx) => (
                   <div key={idx} className="p-4 bg-slate-50 hover:bg-indigo-50/20 rounded-2xl border border-slate-200 text-xs flex flex-col justify-between transition group">
                     <div>
-                      <div className="flex items-start justify-between">
-                        <h4 className="font-extrabold text-slate-900 text-sm leading-snug">{proj.title}</h4>
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-extrabold text-slate-900 text-sm leading-snug break-words">{proj.title}</h4>
                         <button
                           type="button"
                           onClick={() => removeProject(idx)}
                           title="Remove project"
-                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition opacity-80 group-hover:opacity-100"
+                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition opacity-80 group-hover:opacity-100 shrink-0"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>
-                      <p className="text-slate-600 mt-1.5 text-[11px] leading-relaxed">{proj.description}</p>
+                      <p className="text-slate-600 mt-1.5 text-[11px] leading-relaxed break-words">{proj.description}</p>
                       <div className="flex flex-wrap gap-1 mt-2.5">
                         {(proj.technologies || []).map((t) => (
                           <span key={t} className="px-2 py-0.5 rounded-md bg-white text-indigo-700 text-[10px] font-bold border border-indigo-100 shadow-2xs">
@@ -757,10 +757,10 @@ export function SeekerProfileTab({
                         href={proj.link.startsWith('http') ? proj.link : `https://${proj.link}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-600 font-bold text-[11px] mt-3.5 inline-flex items-center gap-1 hover:underline"
+                        className="text-indigo-600 font-bold text-[11px] mt-3.5 inline-flex items-center gap-1 hover:underline break-all"
                       >
                         <span>View Project Live / Code</span>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
                       </a>

@@ -10,16 +10,16 @@ export function HrJobOpenings({
   onOpenPostJob
 }) {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
       {/* Panel Header */}
-      <div className="pb-3.5 border-b border-slate-100 flex items-center justify-between gap-2">
+      <div className="pb-3.5 border-b border-slate-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm shrink-0">
             <svg className="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
-          <div>
+          <div className="min-w-0">
             <h3 className="font-extrabold text-sm text-slate-900 leading-tight">My Job Openings</h3>
             <p className="text-[11px] text-slate-400">Manage vacancies & review applicants</p>
           </div>
@@ -75,7 +75,7 @@ export function HrJobOpenings({
             return (
               <div
                 key={job.id}
-                className={`p-4 rounded-2xl border transition-all duration-200 space-y-3 bg-white text-xs ${
+                className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-200 space-y-3 bg-white text-xs ${
                   isSelected
                     ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-md bg-purple-50/20'
                     : 'border-slate-200/80 hover:border-purple-300 hover:shadow-sm'
@@ -116,15 +116,15 @@ export function HrJobOpenings({
                 </div>
 
                 {/* Card Middle: Location & Salary Details */}
-                <div className="grid grid-cols-2 gap-2 py-2 border-y border-slate-100 text-[11px]">
-                  <div className="flex items-center gap-1.5 text-slate-600 truncate">
+                <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-y border-slate-100 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-slate-600 min-w-0">
                     <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     <span className="truncate">{job.location || 'India'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-700 font-semibold truncate justify-end">
+                  <div className="flex items-center gap-1.5 text-slate-700 font-semibold min-w-0">
                     <svg className="w-3.5 h-3.5 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -133,8 +133,8 @@ export function HrJobOpenings({
                 </div>
 
                 {/* Card Bottom: Applicant Count & View Candidates Action */}
-                <div className="flex items-center justify-between pt-0.5">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md font-extrabold text-[11px] ${
                       appCount > 0
                         ? 'bg-purple-100 text-purple-800'

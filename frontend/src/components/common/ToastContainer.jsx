@@ -4,13 +4,13 @@ export function ToastContainer({ toasts = [], removeToast }) {
   if (!toasts || toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none">
+    <div className="fixed bottom-4 sm:bottom-6 right-3 sm:right-6 left-3 sm:left-auto max-w-sm sm:max-w-md z-50 space-y-2 pointer-events-none">
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center justify-between gap-3 text-xs font-semibold animate-fade-in pointer-events-auto"
+          className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/60 flex items-center justify-between gap-3 text-xs font-semibold animate-fade-in pointer-events-auto max-w-full"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {t.type === 'info' ? (
               <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -24,7 +24,7 @@ export function ToastContainer({ toasts = [], removeToast }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
               </svg>
             )}
-            <span>{t.message}</span>
+            <span className="break-words min-w-0">{t.message}</span>
           </div>
           {removeToast && (
             <button

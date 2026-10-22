@@ -5,16 +5,16 @@ export function AdminUserDirectory({
   onToggleUserStatus
 }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
-          <h3 className="font-extrabold text-slate-900 text-base">User & Employer Directory</h3>
+          <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">User & Employer Directory</h3>
           <p className="text-xs text-slate-500">View and manage system credentials and roles.</p>
         </div>
       </div>
 
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-600">
+        <table className="w-full text-left text-xs text-slate-600 min-w-[500px]">
           <thead className="bg-slate-50 text-slate-700 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
             <tr>
               <th className="p-3">User</th>

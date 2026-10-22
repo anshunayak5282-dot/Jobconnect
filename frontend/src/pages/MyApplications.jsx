@@ -76,84 +76,129 @@ export const MyApplications = ({ onExplore }) => {
               {!isRejected ? (
                 <div className="pt-2">
                   {/* Small screens vertical timeline layout (< sm) */}
-                  <div className="sm:hidden space-y-2.5 py-1 px-1">
+                  <div className="sm:hidden py-1 px-1">
                     {stages.map((st, idx) => {
-                      const isPassed = idx <= currentStageIdx;
+                      const isCompleted = idx <= currentStageIdx;
                       const isCurrent = idx === currentStageIdx;
-                      let circleClass = 'bg-slate-200 text-slate-500';
-                      let labelClass = 'text-slate-500 font-medium';
-                      let statusText = 'Pending';
 
-                      if (isPassed) {
-                        circleClass = 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/30';
-                        labelClass = 'text-indigo-950 font-bold';
-                        statusText = 'Completed';
+                      let circleClass = 'bg-slate-200 text-slate-500 font-bold ring-4 ring-white';
+                      let labelClass = 'text-slate-500 font-medium';
+                      let statusBadge = (
+                        <span className="text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-full text-slate-400 bg-slate-100">
+                          Pending
+                        </span>
+                      );
+
+                      if (isCompleted) {
+                        circleClass = isCurrent
+                          ? 'bg-purple-600 text-white font-extrabold ring-4 ring-purple-200 ring-offset-1 ring-offset-white shadow-md shadow-purple-600/30'
+                          : 'bg-purple-600 text-white font-bold ring-4 ring-white shadow-xs shadow-purple-600/30';
+                        labelClass = isCurrent ? 'text-purple-900 font-extrabold' : 'text-slate-800 font-bold';
+                        statusBadge = (
+                          <span className="text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                            Completed
+                          </span>
+                        );
                       }
+
                       if (isCurrent) {
-                        statusText = st === 'Selected' ? 'Selected & Offered' : 'In Progress';
-                        if (st === 'Selected') {
-                          circleClass = 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30';
-                          labelClass = 'text-emerald-700 font-black';
-                        } else {
-                          circleClass = 'bg-indigo-600 text-white ring-4 ring-indigo-100 font-extrabold';
-                          labelClass = 'text-indigo-700 font-black';
-                        }
+                        statusBadge = (
+                          <span className="text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                            {st === 'Selected' ? 'Selected & Offered' : 'In Progress'}
+                          </span>
+                        );
                       }
 
                       return (
-                        <div key={st} className="flex items-center gap-3">
-                          <div className="relative flex items-center justify-center shrink-0">
-                            <div className={`w-6 h-6 rounded-full ${circleClass} flex items-center justify-center font-bold text-[11px] z-10 transition duration-300`}>
-                              {isPassed ? '✓' : (idx + 1)}
+                        <div key={st} className="relative flex items-center gap-3 pb-3 last:pb-0">
+                          {/* Vertical Connecting Line between centers of step idx and step idx+1 */}
+                          {idx < stages.length - 1 && (
+                            <div
+                              className={`absolute left-[14px] -translate-x-1/2 top-[14px] h-full w-[2.5px] z-0 ${
+                                idx < currentStageIdx ? 'bg-purple-600' : 'bg-slate-200'
+                              }`}
+                              aria-hidden="true"
+                            />
+                          )}
+
+                          {/* Step Icon */}
+                          <div className="relative z-10 flex items-center justify-center shrink-0">
+                            <div
+                              className={`w-7 h-7 rounded-full ${circleClass} flex items-center justify-center text-xs transition duration-300`}
+                            >
+                              {isCompleted ? (
+                                <svg className="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <span>{idx + 1}</span>
+                              )}
                             </div>
-                            {idx < stages.length - 1 && (
-                              <div className={`absolute top-6 w-0.5 h-3 ${isPassed && idx < currentStageIdx ? 'bg-indigo-600' : 'bg-slate-200'}`} />
-                            )}
                           </div>
-                          <div className="flex items-center justify-between flex-1 min-w-0 bg-slate-50/80 px-3 py-1.5 rounded-xl border border-slate-100">
+
+                          {/* Step Label Card */}
+                          <div className="flex items-center justify-between flex-1 min-w-0 bg-slate-50/80 px-3 py-1.5 rounded-xl border border-slate-100 relative z-10">
                             <span className={`text-xs ${labelClass} truncate mr-2`}>{st}</span>
-                            <span className={`text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-full ${
-                              isCurrent
-                                ? 'bg-indigo-100 text-indigo-700 font-bold'
-                                : isPassed
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'text-slate-400'
-                            }`}>
-                              {statusText}
-                            </span>
+                            {statusBadge}
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Tablet/Desktop horizontal stage grid (>= sm) */}
-                  <div className="hidden sm:block">
-                    <div className="grid grid-cols-5 gap-1 relative text-center">
-                      {stages.map((st, idx) => {
-                        const isPassed = idx <= currentStageIdx;
-                        const isCurrent = idx === currentStageIdx;
+                  {/* Tablet/Desktop horizontal stage tracker (>= sm) */}
+                  <div className="hidden sm:block pt-1 pb-2">
+                    <div className="relative">
+                      {/* Connecting Track Line - Aligns from center of Step 0 (10%) to center of Step 4 (90%) */}
+                      <div
+                        className="absolute top-4 left-[10%] right-[10%] h-[3px] -translate-y-1/2 bg-slate-200 z-0 rounded-full"
+                        aria-hidden="true"
+                      >
+                        {/* Filled Purple Line up to Current Stage */}
+                        <div
+                          className="h-full bg-purple-600 transition-all duration-500 ease-in-out rounded-full"
+                          style={{
+                            width: `${Math.max(0, Math.min(100, (currentStageIdx / (stages.length - 1)) * 100))}%`
+                          }}
+                        />
+                      </div>
 
-                        let circleClass = "bg-slate-200 text-slate-500";
-                        let labelClass = "text-slate-400";
-                        if (isPassed) {
-                          circleClass = "bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
-                          labelClass = "text-indigo-900 font-bold";
-                        }
-                        if (isCurrent && st === 'Selected') {
-                          circleClass = "bg-emerald-500 text-white shadow-md shadow-emerald-500/30";
-                          labelClass = "text-emerald-700 font-black";
-                        }
+                      {/* 5 Steps Grid */}
+                      <div className="grid grid-cols-5 relative z-10 text-center">
+                        {stages.map((st, idx) => {
+                          const isCompleted = idx <= currentStageIdx;
+                          const isCurrent = idx === currentStageIdx;
 
-                        return (
-                          <div key={st} className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full ${circleClass} flex items-center justify-center font-bold text-xs transition duration-300`}>
-                              {isPassed ? '✓' : (idx + 1)}
+                          let circleClass = 'bg-slate-200 text-slate-500 font-bold ring-4 ring-white';
+                          let labelClass = 'text-slate-400 font-medium';
+
+                          if (isCompleted) {
+                            circleClass = isCurrent
+                              ? 'bg-purple-600 text-white font-extrabold ring-4 ring-purple-200 ring-offset-2 ring-offset-white shadow-md shadow-purple-600/30'
+                              : 'bg-purple-600 text-white font-bold ring-4 ring-white shadow-sm';
+                            labelClass = isCurrent
+                              ? 'text-purple-900 font-extrabold'
+                              : 'text-slate-700 font-bold';
+                          }
+
+                          return (
+                            <div key={st} className="flex flex-col items-center">
+                              <div
+                                className={`w-8 h-8 rounded-full ${circleClass} flex items-center justify-center text-xs transition duration-300`}
+                              >
+                                {isCompleted ? (
+                                  <svg className="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <span>{idx + 1}</span>
+                                )}
+                              </div>
+                              <span className={`text-[11px] mt-2 ${labelClass}`}>{st}</span>
                             </div>
-                            <span className={`text-[10px] mt-1.5 ${labelClass}`}>{st}</span>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

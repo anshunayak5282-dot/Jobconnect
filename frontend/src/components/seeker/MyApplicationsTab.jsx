@@ -46,10 +46,13 @@ export function MyApplicationsTab({
       ) : (
         <div className="space-y-4">
           {myApplications.map((app) => {
-            const job = jobs.find((j) => matchesJobId(j.id, app.jobId)) || {
-              title: 'Technical Role',
-              company: 'Partner Company',
-              location: 'India'
+            const matchedJob = jobs.find((j) => matchesJobId(j.id, app.jobId));
+            const job = {
+              id: matchedJob?.id || app.jobId || app.job?.id,
+              title: matchedJob?.title || app.job?.title || 'Technical Role',
+              company: matchedJob?.company || matchedJob?.companyName || app.job?.company || app.job?.companyName || 'Partner Company',
+              companyName: matchedJob?.companyName || matchedJob?.company || app.job?.companyName || app.job?.company || 'Partner Company',
+              location: matchedJob?.location || app.job?.location || 'India'
             };
             const isRejected = app.status === 'Rejected';
             const currentStageIdx = stages.indexOf(app.status);
@@ -234,7 +237,7 @@ export function MyApplicationsTab({
                   </div>
                   <button
                     onClick={() => {
-                      const j = jobs.find((item) => matchesJobId(item.id, app.jobId));
+                      const j = jobs.find((item) => matchesJobId(item.id, app.jobId)) || app.job;
                       if (j) onOpenJobDetail(j);
                     }}
                     className="text-indigo-600 hover:text-indigo-800 font-bold shrink-0 self-start sm:self-auto"

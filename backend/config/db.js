@@ -284,10 +284,38 @@ const initSchemaAndSeed = async () => {
 
       await pool.query(`
         INSERT INTO \`applications\` (\`id\`, \`job_id\`, \`applicant_id\`, \`resume_url\`, \`cover_letter\`, \`status\`) VALUES
-        (1, 1, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I am excited to apply for Junior Web Developer at ABC Technologies. My background in React and full-stack development aligns well with your team objectives.', 'Applied');
+        (1, 1, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I am excited to apply for Junior Web Developer at ABC Technologies. My background in React and full-stack development aligns well with your team objectives.', 'Under Review'),
+        (2, 3, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I have built multiple responsive web projects with Tailwind CSS and React. I am excited to work remotely with CloudScale India.', 'Applied');
       `);
 
       console.log('🌱 Seed data initialized successfully in MySQL.');
+    }
+
+    // Ensure all demo candidate applications exist in MySQL if not present
+    try {
+      const [ankitApps] = await pool.query(
+        'SELECT id, job_id, applicant_id, status FROM `applications` WHERE `applicant_id` = 1'
+      );
+      const hasJob1 = ankitApps.some(a => Number(a.job_id) === 1);
+      const hasJob3 = ankitApps.some(a => Number(a.job_id) === 3);
+
+      if (!hasJob1) {
+        await pool.query(
+          `INSERT INTO \`applications\` (\`job_id\`, \`applicant_id\`, \`resume_url\`, \`cover_letter\`, \`status\`)
+           VALUES (1, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I am excited to apply for Junior Web Developer at ABC Technologies. My background in React and full-stack development aligns well with your team objectives.', 'Under Review')`
+        );
+        console.log('🌱 Verified and restored application for job 1 in MySQL.');
+      }
+
+      if (!hasJob3) {
+        await pool.query(
+          `INSERT INTO \`applications\` (\`job_id\`, \`applicant_id\`, \`resume_url\`, \`cover_letter\`, \`status\`)
+           VALUES (3, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I have built multiple responsive web projects with Tailwind CSS and React. I am excited to work remotely with CloudScale India.', 'Applied')`
+        );
+        console.log('🌱 Verified and restored application for job 3 in MySQL.');
+      }
+    } catch (appVerifyErr) {
+      console.error('Applications verification error:', appVerifyErr.message);
     }
   } catch (seedErr) {
     console.error('Seed/Verification Error:', seedErr.message);

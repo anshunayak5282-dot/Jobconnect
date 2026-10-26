@@ -29,6 +29,7 @@ export function Home({ initialTab }) {
     toggleSaveJob,
     postNewJob,
     fetchJobs,
+    fetchApplications,
     updateApplicationStatus,
     approveJob,
     rejectJob,
@@ -81,10 +82,10 @@ export function Home({ initialTab }) {
 
   // Seeker active sub-tab ('explore' | 'applications' | 'saved' | 'profile') synchronized with route pathname
   const getTabFromPath = (path) => {
-    if (path === '/jobs') return 'explore';
+    if (path === '/dashboard' || path === '/jobs') return 'explore';
+    if (path === '/applications') return 'applications';
     if (path === '/saved' || path === '/saved-jobs') return 'saved';
     if (path === '/profile' || path === '/my-profile') return 'profile';
-    if (path === '/dashboard' || path === '/applications') return 'applications';
     return initialTab || 'explore';
   };
 
@@ -98,9 +99,9 @@ export function Home({ initialTab }) {
   const handleSetSeekerTab = (tab) => {
     setSeekerTabState(tab);
     if (tab === 'explore') {
-      navigate('/jobs');
-    } else if (tab === 'applications') {
       navigate('/dashboard');
+    } else if (tab === 'applications') {
+      navigate('/applications');
     } else if (tab === 'saved') {
       navigate('/saved');
     } else if (tab === 'profile') {
@@ -135,12 +136,24 @@ export function Home({ initialTab }) {
   }, [data.profile]);
 
   // Seeker user stats
-  const activeUserEmail = data.currentUser?.email || data.profile?.email;
+  const activeUserEmail = (data.currentUser?.email || data.profile?.email || '').toLowerCase().trim();
+  const activeUserId = data.currentUser?.id || data.currentUser?._id;
   const myApplications = useMemo(() => {
-    return (data.applications || []).filter(
-      (a) => a.applicantEmail === activeUserEmail
-    );
-  }, [data.applications, activeUserEmail]);
+    if (!activeUserEmail && !activeUserId) return [];
+    return (data.applications || []).filter((a) => {
+      const email = (a.applicantEmail || a.applicant?.email || a.applicant_email || '').toLowerCase().trim();
+      const matchesEmail = Boolean(activeUserEmail && email && email === activeUserEmail);
+      const applicantId = a.applicantId || a.applicant?.id || a.applicant_id;
+      const matchesId = Boolean(activeUserId && applicantId && String(applicantId) === String(activeUserId));
+      return matchesEmail || matchesId;
+    });
+  }, [data.applications, activeUserEmail, activeUserId]);
+
+  useEffect(() => {
+    if (seekerTab === 'applications' && fetchApplications) {
+      fetchApplications();
+    }
+  }, [seekerTab, fetchApplications]);
 
   const savedJobs = useMemo(() => {
     return (data.jobs || []).filter((j) =>

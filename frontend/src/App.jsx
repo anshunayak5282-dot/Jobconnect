@@ -96,7 +96,7 @@ function DashboardRouteDispatcher() {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  return <Home initialTab="applications" />;
+  return <Home initialTab="explore" />;
 }
 
 export function App() {
@@ -120,20 +120,16 @@ export function App() {
 
           {/* Candidate / Job Seeker Routes */}
           <Route
-            path="/jobs"
-            element={
-              <ProtectedRoute allowedRoles={['seeker']}>
-                <Home initialTab="explore" />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardRouteDispatcher />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/jobs"
+            element={<Navigate to="/dashboard" replace />}
           />
           <Route
             path="/applications"

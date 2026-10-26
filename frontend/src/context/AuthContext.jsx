@@ -5,6 +5,7 @@ const AuthContext = createContext();
 
 import { parseJwtPayload } from '../utils/jwtUtils';
 import { getProfileForUser, calculateProfileCompleteness } from '../utils/profileUtils';
+import { matchesJobId } from '../utils/jobUtils';
 
 export { calculateProfileCompleteness };
 
@@ -245,6 +246,90 @@ export const AuthProvider = ({ children }) => {
     fetchJobs();
   }, [data.currentUserRole, data.currentUser?.id, fetchJobs]);
 
+  // Live MySQL Applications Fetcher:
+  // Fetches live candidate applications directly from MySQL.
+  // Candidates fetch their own applications (/api/applications/my);
+  // HR/Admin fetch company/all applications (/api/applications).
+  const fetchApplications = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('jobconnect_token');
+      const currentUser = data.currentUser;
+      if (!token && !currentUser) return;
+
+      const role = data.currentUserRole || currentUser?.role;
+      let endpoint = '/api/applications/my';
+      if (role === 'hr' || role === 'admin' || currentUser?.role === 'hr' || currentUser?.role === 'admin') {
+        endpoint = '/api/applications';
+      }
+
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(endpoint, { headers });
+      if (!res.ok) return;
+      const resData = await res.json();
+
+      if (resData.success && Array.isArray(resData.data)) {
+        const dbApps = resData.data;
+
+        setData(prev => {
+          const currentApps = prev.applications || [];
+
+          // Format incoming DB applications to standard frontend shape
+          const formattedDbApps = dbApps.map(app => ({
+            id: app.id || app._id,
+            _id: app._id || app.id,
+            jobId: app.jobId || app.job?.id || app.job_id,
+            applicantName: app.applicantName || app.applicant?.name || 'Candidate',
+            applicantEmail: app.applicantEmail || app.applicant?.email || '',
+            applicantPhone: app.applicantPhone || app.applicant?.phone || '',
+            applicantLocation: app.applicantLocation || app.applicant?.location || '',
+            applicantId: app.applicantId || app.applicant?.id || app.applicant_id,
+            resumeUrl: app.resumeUrl || app.resume || '',
+            coverLetter: app.coverLetter || '',
+            status: app.status || 'Applied',
+            appliedAt: app.appliedAt || (app.createdAt ? new Date(app.createdAt).toISOString().split('T')[0] : 'Just now'),
+            job: app.job,
+            createdAt: app.createdAt,
+            updatedAt: app.updatedAt
+          }));
+
+          // Merge: DB applications are authoritative. Retain local optimistic applications if not yet in DB.
+          const merged = [...formattedDbApps];
+          for (const localApp of currentApps) {
+            const alreadyInDb = merged.some(dbApp =>
+              (dbApp.id && String(dbApp.id) === String(localApp.id)) ||
+              (matchesJobId(dbApp.jobId, localApp.jobId) &&
+               (dbApp.applicantEmail || '').toLowerCase().trim() === (localApp.applicantEmail || '').toLowerCase().trim())
+            );
+            if (!alreadyInDb) {
+              merged.push(localApp);
+            }
+          }
+
+          return {
+            ...prev,
+            applications: merged
+          };
+        });
+      }
+    } catch (e) {
+      console.error('Failed to fetch live applications from MySQL:', e);
+    }
+  }, [data.currentUserRole, data.currentUser?.role, data.currentUser?.id, data.currentUser?.email]);
+
+  // Fetch live applications from MySQL on every page load / initial mount
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
+
+  // Refetch live applications when user role or session identity changes
+  useEffect(() => {
+    fetchApplications();
+  }, [data.currentUserRole, data.currentUser?.id, data.currentUser?.email, fetchApplications]);
+
   const toastTimersRef = useRef(new Map());
   const recentToastsRef = useRef(new Map());
 
@@ -344,6 +429,7 @@ export const AuthProvider = ({ children }) => {
     showToast("Reset platform session state", "info");
     setTimeout(() => {
       fetchJobs();
+      fetchApplications();
     }, 50);
   };
 
@@ -406,6 +492,9 @@ export const AuthProvider = ({ children }) => {
           showToast(resData.message || 'Complete your profile to 100% to apply for jobs.', 'error');
           return false;
         }
+        setTimeout(() => {
+          fetchApplications();
+        }, 50);
       } catch (e) {}
     }
 
@@ -500,7 +589,7 @@ export const AuthProvider = ({ children }) => {
     showToast("Job submitted! Awaiting Super Admin approval.", "info");
   };
 
-  const updateApplicationStatus = (appId, status) => {
+  const updateApplicationStatus = async (appId, status) => {
     setData(prev => {
       const app = prev.applications.find(a => a.id === appId);
       const updatedApps = prev.applications.map(a => a.id === appId ? { ...a, status } : a);
@@ -518,6 +607,23 @@ export const AuthProvider = ({ children }) => {
         notifications: [newNotif, ...prev.notifications]
       };
     });
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      const numericId = typeof appId === 'string' && appId.startsWith('app-')
+        ? parseInt(appId.replace('app-', ''), 10) || appId
+        : appId;
+      try {
+        await fetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status })
+        });
+      } catch (e) {}
+    }
 
     showToast(`Candidate status updated to "${status}"!`, 'success');
   };
@@ -1265,6 +1371,7 @@ export const AuthProvider = ({ children }) => {
     }));
     setTimeout(() => {
       fetchJobs();
+      fetchApplications();
     }, 50);
   };
 
@@ -1287,6 +1394,7 @@ export const AuthProvider = ({ children }) => {
     showToast('Logged out successfully', 'info', 3000);
     setTimeout(() => {
       fetchJobs();
+      fetchApplications();
     }, 50);
   };
 
@@ -1303,6 +1411,7 @@ export const AuthProvider = ({ children }) => {
       toggleSaveJob,
       postNewJob,
       fetchJobs,
+      fetchApplications,
       updateApplicationStatus,
       approveJob,
       rejectJob,

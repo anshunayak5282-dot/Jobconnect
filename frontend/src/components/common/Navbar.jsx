@@ -70,7 +70,7 @@ export function Navbar({
             {currentRole === 'seeker' && (
               <>
                 <NavLink
-                  to="/jobs"
+                  to="/dashboard"
                   className={({ isActive }) =>
                     `px-3.5 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition ${
                       isActive || seekerTab === 'explore'
@@ -87,7 +87,7 @@ export function Navbar({
                 </NavLink>
 
                 <NavLink
-                  to="/dashboard"
+                  to="/applications"
                   className={({ isActive }) =>
                     `px-3.5 py-1.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition ${
                       isActive || seekerTab === 'applications'
@@ -270,7 +270,7 @@ export function Navbar({
                             <span>My Profile & Resume</span>
                           </Link>
                           <Link
-                            to="/dashboard"
+                            to="/applications"
                             onClick={() => {
                               setSeekerTab?.('applications');
                               setShowUserMenu(false);
@@ -415,7 +415,7 @@ export function Navbar({
                   </div>
 
                   <Link
-                    to="/jobs"
+                    to="/dashboard"
                     onClick={() => {
                       setSeekerTab?.('explore');
                       setShowMobileMenu(false);
@@ -438,7 +438,7 @@ export function Navbar({
                   </Link>
 
                   <Link
-                    to="/dashboard"
+                    to="/applications"
                     onClick={() => {
                       setSeekerTab?.('applications');
                       setShowMobileMenu(false);

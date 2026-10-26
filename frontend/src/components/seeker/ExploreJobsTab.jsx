@@ -269,9 +269,12 @@ export function ExploreJobsTab({
             <div className="space-y-4">
               {filteredJobs.map((job) => {
                 const isSaved = savedJobIds.some((id) => matchesJobId(id, job.id));
-                const hasApplied = applications.some(
-                  (a) => matchesJobId(a.jobId, job.id) && a.applicantEmail === profile?.email
-                );
+                const candidateEmail = (profile?.email || '').toLowerCase().trim();
+                const hasApplied = applications.some((a) => {
+                  if (!matchesJobId(a.jobId, job.id)) return false;
+                  const appEmail = (a.applicantEmail || a.applicant?.email || a.applicant_email || '').toLowerCase().trim();
+                  return Boolean(candidateEmail && appEmail && appEmail === candidateEmail);
+                });
 
                 return (
                   <JobCard

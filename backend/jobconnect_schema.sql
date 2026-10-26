@@ -176,7 +176,8 @@ VALUES
 -- =====================================================================
 INSERT INTO `applications` (`id`, `job_id`, `applicant_id`, `resume_url`, `cover_letter`, `status`)
 VALUES
-  (1, 1, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I am excited to apply for Junior Web Developer at ABC Technologies. My background in React and full-stack development aligns well with your team objectives.', 'Applied');
+  (1, 1, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I am excited to apply for Junior Web Developer at ABC Technologies. My background in React and full-stack development aligns well with your team objectives.', 'Under Review'),
+  (2, 3, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I have built multiple responsive web projects with Tailwind CSS and React. I am excited to work remotely with CloudScale India.', 'Applied');
 
 -- =====================================================================
 -- 10. SEED DATA: SAVED JOBS & NOTIFICATIONS

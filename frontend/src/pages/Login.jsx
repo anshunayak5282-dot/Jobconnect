@@ -559,7 +559,7 @@ export function Login() {
             </div>
 
             <Link
-              to="/jobs"
+              to="/dashboard"
               onClick={() => setShowMobileNav(false)}
               className="w-full px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs"
             >

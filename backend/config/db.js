@@ -243,6 +243,21 @@ const initSchemaAndSeed = async () => {
         title: 'Super Administrator',
         about: 'System operations officer managing verification queues and platform moderation.',
         skills: 'System Security, DB Administration, RBAC'
+      },
+      {
+        id: 4,
+        name: 'Sneha Roy',
+        email: 'sneha.roy@example.com',
+        plainPass: 'candidate123',
+        hashPass: passCandidate,
+        role: 'user',
+        status: 'Active',
+        company_name: null,
+        phone: '+91 94321 88990',
+        location: 'Ranchi, Jharkhand',
+        title: 'Frontend React Developer',
+        about: 'Passionate developer with 1 year experience building clean UI interfaces and responsive components.',
+        skills: 'HTML, CSS, JavaScript, React, Tailwind CSS'
       }
     ];
 
@@ -313,6 +328,19 @@ const initSchemaAndSeed = async () => {
            VALUES (3, 1, 'Ankit_Kumar_FullStack_Resume.pdf', 'I have built multiple responsive web projects with Tailwind CSS and React. I am excited to work remotely with CloudScale India.', 'Applied')`
         );
         console.log('🌱 Verified and restored application for job 3 in MySQL.');
+      }
+
+      // Check candidate Sneha Roy (applicant 4) application for job 1
+      const [snehaApps] = await pool.query(
+        'SELECT id, job_id, applicant_id, status FROM `applications` WHERE `applicant_id` = 4'
+      );
+      const hasSnehaJob1 = snehaApps.some(a => Number(a.job_id) === 1);
+      if (!hasSnehaJob1) {
+        await pool.query(
+          `INSERT INTO \`applications\` (\`job_id\`, \`applicant_id\`, \`resume_url\`, \`cover_letter\`, \`status\`)
+           VALUES (1, 4, 'Sneha_Roy_Frontend_Resume.pdf', 'Passionate developer with 1 year experience building clean UI interfaces and responsive components.', 'Shortlisted')`
+        );
+        console.log('🌱 Verified and restored Sneha Roy application for job 1 in MySQL.');
       }
     } catch (appVerifyErr) {
       console.error('Applications verification error:', appVerifyErr.message);

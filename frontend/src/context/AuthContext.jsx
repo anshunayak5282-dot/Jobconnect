@@ -590,13 +590,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateApplicationStatus = async (appId, status) => {
+    // Find target application in current state
+    const targetApp = (data.applications || []).find(a =>
+      String(a.id) === String(appId) ||
+      (typeof a.id === 'string' && typeof appId === 'string' && a.id.replace('app-', '') === appId.replace('app-', ''))
+    );
+    const applicantName = targetApp ? targetApp.applicantName : 'Candidate';
+
+    // 1. Immediate optimistic update in state
     setData(prev => {
-      const app = prev.applications.find(a => a.id === appId);
-      const updatedApps = prev.applications.map(a => a.id === appId ? { ...a, status } : a);
+      const updatedApps = (prev.applications || []).map(a => {
+        const isMatch =
+          String(a.id) === String(appId) ||
+          (targetApp &&
+           matchesJobId(a.jobId, targetApp.jobId) &&
+           (a.applicantEmail || '').toLowerCase().trim() === (targetApp.applicantEmail || '').toLowerCase().trim());
+        return isMatch ? { ...a, status } : a;
+      });
+
       const newNotif = {
         id: `n-${Date.now()}`,
         title: "Candidate Pipeline Updated",
-        text: `${app ? app.applicantName : 'Candidate'} status changed to ${status}.`,
+        text: `${applicantName} status changed to ${status}.`,
         time: "Just now",
         type: "status"
       };
@@ -608,13 +623,15 @@ export const AuthProvider = ({ children }) => {
       };
     });
 
+    // 2. Persist to MySQL via PUT /api/applications/:id/status
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
-      const numericId = typeof appId === 'string' && appId.startsWith('app-')
-        ? parseInt(appId.replace('app-', ''), 10) || appId
-        : appId;
       try {
-        await fetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
+        const numericId = typeof appId === 'string' && appId.startsWith('app-')
+          ? parseInt(appId.replace('app-', ''), 10) || appId
+          : appId;
+
+        const res = await fetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -622,8 +639,32 @@ export const AuthProvider = ({ children }) => {
           },
           body: JSON.stringify({ status })
         });
-      } catch (e) {}
+
+        const resData = await res.json();
+        if (res.ok && resData.success && resData.data) {
+          const updated = resData.data;
+          // Synchronize authoritative updated row into state
+          setData(prev => ({
+            ...prev,
+            applications: (prev.applications || []).map(a => {
+              const isMatch =
+                String(a.id) === String(updated.id) ||
+                String(a.id) === String(appId) ||
+                (matchesJobId(a.jobId, updated.jobId) &&
+                 (a.applicantEmail || '').toLowerCase().trim() === (updated.applicantEmail || '').toLowerCase().trim());
+              return isMatch ? { ...a, ...updated, status: updated.status } : a;
+            })
+          }));
+        } else if (!res.ok) {
+          console.warn('API status update error:', resData?.message);
+        }
+      } catch (err) {
+        console.error('Failed to sync application status to MySQL:', err);
+      }
     }
+
+    // 3. Re-fetch applications from MySQL to synchronize across all dashboards
+    await fetchApplications();
 
     showToast(`Candidate status updated to "${status}"!`, 'success');
   };

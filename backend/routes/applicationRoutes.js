@@ -155,7 +155,15 @@ router.put('/:id/status', protect, authorize('hr', 'admin'), async (req, res) =>
     if (req.user.role === 'hr') {
       const hrCompany = (req.user.company_name || req.user.company || '').toLowerCase().trim();
       const appCompany = (app.job?.company || app.job?.companyName || '').toLowerCase().trim();
-      if (hrCompany && appCompany && hrCompany !== appCompany) {
+      const isOwner = app.job?.posted_by && String(app.job.posted_by) === String(req.user.id);
+      const companyMatches =
+        !hrCompany ||
+        !appCompany ||
+        appCompany === hrCompany ||
+        appCompany.includes(hrCompany) ||
+        hrCompany.includes(appCompany);
+
+      if (!isOwner && !companyMatches) {
         return res.status(403).json({
           success: false,
           message: 'Forbidden: You are not authorized to update applications for another company.'
@@ -164,6 +172,9 @@ router.put('/:id/status', protect, authorize('hr', 'admin'), async (req, res) =>
     }
 
     const updatedApp = await Application.findByIdAndUpdate(req.params.id, { status });
+    if (!updatedApp) {
+      return res.status(500).json({ success: false, message: 'Failed to update application status in MySQL' });
+    }
 
     res.json({
       success: true,

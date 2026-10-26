@@ -155,6 +155,12 @@ export function Home({ initialTab }) {
     }
   }, [seekerTab, fetchApplications]);
 
+  useEffect(() => {
+    if ((currentRole === 'hr' || currentRole === 'admin') && fetchApplications) {
+      fetchApplications();
+    }
+  }, [currentRole, fetchApplications]);
+
   const savedJobs = useMemo(() => {
     return (data.jobs || []).filter((j) =>
       (data.savedJobIds || []).some((id) => matchesJobId(id, j.id))

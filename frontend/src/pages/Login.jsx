@@ -35,7 +35,17 @@ export function Login() {
   const [toasts, setToasts] = useState([]);
   const [showMobileNav, setShowMobileNav] = useState(false);
 
-  // Auto-close mobile nav on resize
+  // Authenticated session check: hide mobile navigation menu on login/signup pages when unauthenticated
+  const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
+  const isLoggedIn = Boolean(token && auth?.data?.currentUser && auth?.data?.currentUser?.status !== 'Suspended');
+
+  // Auto-close mobile nav if logged out or on desktop resize
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setShowMobileNav(false);
+    }
+  }, [isLoggedIn]);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 640) {
@@ -508,7 +518,7 @@ export function Login() {
         </Link>
 
         {/* Desktop Quick Nav Actions */}
-        <div className="hidden sm:flex items-center gap-3">
+        {/* <div className="hidden sm:flex items-center gap-3">
           <Link
             to="/"
             className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 rounded-xl transition border border-indigo-100/80"
@@ -518,10 +528,10 @@ export function Login() {
             </svg>
             <span>Explore Open Jobs</span>
           </Link>
-        </div>
+        </div> */}
 
         {/* Mobile Hamburger Toggle Button */}
-        <button
+        {/* <button
           type="button"
           onClick={() => setShowMobileNav((prev) => !prev)}
           className="sm:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
@@ -538,7 +548,7 @@ export function Login() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           )}
-        </button>
+        </button> */}
 
         {/* Mobile Dropdown Menu Container */}
         {showMobileNav && (

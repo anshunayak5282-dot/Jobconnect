@@ -131,7 +131,7 @@ export function EditProfileModal({
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
               </svg>
-              <span>{currentRole === 'hr' ? 'Submit for Admin Approval' : 'Save Profile to MySQL'}</span>
+              <span>{currentRole === 'hr' ? 'Submit for Admin Approval' : 'Save Profile'}</span>
             </button>
           </div>
         </form>

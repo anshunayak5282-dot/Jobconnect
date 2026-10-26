@@ -1,9 +1,17 @@
 const { query } = require('../config/db');
 
+const parseNumericId = (id) => {
+  if (id === null || id === undefined) return null;
+  if (typeof id === 'number') return id;
+  const match = String(id).match(/\d+/);
+  return match ? parseInt(match[0], 10) : null;
+};
+
 const User = {
   // Find user by email
   async findOne({ email }) {
-    const [rows] = await query('SELECT * FROM `users` WHERE `email` = ? LIMIT 1', [email]);
+    if (!email) return null;
+    const [rows] = await query('SELECT * FROM `users` WHERE LOWER(`email`) = LOWER(?) LIMIT 1', [email.trim()]);
     if (!rows[0]) return null;
     const user = rows[0];
     try {
@@ -20,9 +28,10 @@ const User = {
 
   // Find user by ID (exclude password by default)
   async findById(id) {
+    const numId = parseNumericId(id);
     const [rows] = await query(
-      'SELECT id, name, email, role, status, company_name, phone, location, title, about, resume_name, skills, education, experience, projects, created_at, updated_at FROM `users` WHERE `id` = ? LIMIT 1',
-      [id]
+      'SELECT id, name, email, role, status, company_name, phone, location, title, about, resume_name, skills, education, experience, projects, created_at, updated_at FROM `users` WHERE `id` = ? OR `id` = ? LIMIT 1',
+      [id, numId || id]
     );
     if (!rows[0]) return null;
     const user = rows[0];
@@ -68,12 +77,14 @@ const User = {
 
   // Update user status (Active / Suspended)
   async updateStatus(id, status) {
-    await query('UPDATE `users` SET `status` = ? WHERE `id` = ?', [status, id]);
-    return this.findById(id);
+    const numId = parseNumericId(id);
+    await query('UPDATE `users` SET `status` = ? WHERE `id` = ? OR `id` = ?', [status, id, numId || id]);
+    return this.findById(numId || id);
   },
 
   // Update user profile fields in MySQL
   async updateProfile(id, fields = {}) {
+    const numId = parseNumericId(id) || id;
     if (fields.company !== undefined && fields.company_name === undefined) {
       fields.company_name = fields.company;
     }
@@ -93,11 +104,11 @@ const User = {
     }
 
     if (setClauses.length > 0) {
-      values.push(id);
+      values.push(numId);
       await query(`UPDATE \`users\` SET ${setClauses.join(', ')} WHERE \`id\` = ?`, values);
     }
 
-    return this.findById(id);
+    return this.findById(numId);
   }
 };
 

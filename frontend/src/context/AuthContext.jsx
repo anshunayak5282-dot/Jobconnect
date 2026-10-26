@@ -131,8 +131,10 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('jobconnect_token');
     const userEmail = data.currentUser?.email;
-    if (token && userEmail && userEmail !== 'ankit.dev@example.com') {
-      fetch(`/api/users/profile/${encodeURIComponent(userEmail)}`)
+    if (token && userEmail) {
+      fetch(`/api/users/profile/${encodeURIComponent(userEmail)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
         .then(res => res.json())
         .then(resData => {
           if (resData.success && resData.data) {
@@ -148,7 +150,7 @@ export const AuthProvider = ({ children }) => {
                 location: dbUser.location !== null && dbUser.location !== undefined ? dbUser.location : prev.profile?.location,
                 title: dbUser.title || prev.profile?.title || 'Candidate',
                 about: dbUser.about !== null && dbUser.about !== undefined ? dbUser.about : prev.profile?.about,
-                resumeName: dbUser.resume_name || prev.profile?.resumeName,
+                resumeName: dbUser.resume_name || dbUser.resumeName || prev.profile?.resumeName,
                 skills: dbUser.skills ? (Array.isArray(dbUser.skills) ? dbUser.skills : dbUser.skills.split(',').map(s => s.trim())) : prev.profile?.skills,
                 education: dbUser.education !== undefined && dbUser.education !== null ? (Array.isArray(dbUser.education) ? dbUser.education : (typeof dbUser.education === 'string' ? JSON.parse(dbUser.education) : [])) : (prev.profile?.education || []),
                 experience: dbUser.experience !== undefined && dbUser.experience !== null ? (Array.isArray(dbUser.experience) ? dbUser.experience : (typeof dbUser.experience === 'string' ? JSON.parse(dbUser.experience) : [])) : (prev.profile?.experience || []),
@@ -330,6 +332,64 @@ export const AuthProvider = ({ children }) => {
     fetchApplications();
   }, [data.currentUserRole, data.currentUser?.id, data.currentUser?.email, fetchApplications]);
 
+  // Live MySQL Saved Jobs Fetcher:
+  // Fetches candidate's bookmarked jobs from MySQL
+  const fetchSavedJobs = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('jobconnect_token');
+      const role = data.currentUserRole || data.currentUser?.role;
+      if (!token || (role !== 'seeker' && role !== 'user' && data.currentUser?.role !== 'user')) {
+        return;
+      }
+      const res = await fetch('/api/jobs/saved/my', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const resData = await res.json();
+      if (resData.success && Array.isArray(resData.data)) {
+        setData(prev => ({
+          ...prev,
+          savedJobIds: resData.data
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch saved jobs from MySQL:', e);
+    }
+  }, [data.currentUserRole, data.currentUser?.role]);
+
+  // Live MySQL Users Fetcher:
+  // Fetches platform user directory from MySQL for Admin
+  const fetchUsers = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('jobconnect_token');
+      const role = data.currentUserRole || data.currentUser?.role;
+      if (!token || (role !== 'admin' && data.currentUser?.role !== 'admin')) {
+        return;
+      }
+      const res = await fetch('/api/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const resData = await res.json();
+      if (resData.success && Array.isArray(resData.data)) {
+        setData(prev => ({
+          ...prev,
+          users: resData.data
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch users from MySQL:', e);
+    }
+  }, [data.currentUserRole, data.currentUser?.role]);
+
+  useEffect(() => {
+    fetchSavedJobs();
+  }, [fetchSavedJobs]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
   const toastTimersRef = useRef(new Map());
   const recentToastsRef = useRef(new Map());
 
@@ -430,11 +490,13 @@ export const AuthProvider = ({ children }) => {
     setTimeout(() => {
       fetchJobs();
       fetchApplications();
+      fetchSavedJobs();
+      fetchUsers();
     }, 50);
   };
 
   const applyForJob = async (jobId, coverLetter) => {
-    const job = (data.jobs || []).find(j => j.id === jobId);
+    const job = (data.jobs || []).find(j => matchesJobId(j.id, jobId));
     if (!job) return false;
 
     // Enforce 100% candidate profile completion validation
@@ -502,16 +564,35 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
-  const toggleSaveJob = (jobId) => {
+  const toggleSaveJob = async (jobId) => {
     setData(prev => {
-      const exists = prev.savedJobIds.includes(jobId);
+      const exists = (prev.savedJobIds || []).some(id => matchesJobId(id, jobId));
       const updated = exists 
-        ? prev.savedJobIds.filter(id => id !== jobId)
+        ? prev.savedJobIds.filter(id => !matchesJobId(id, jobId))
         : [...prev.savedJobIds, jobId];
       
       showToast(exists ? "Removed from saved jobs" : "Saved to your bookmarks!", exists ? "info" : "success");
       return { ...prev, savedJobIds: updated };
     });
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      const numericId = typeof jobId === 'string' && jobId.startsWith('job-')
+        ? parseInt(jobId.replace('job-', ''), 10) || jobId
+        : jobId;
+      try {
+        await fetch(`/api/jobs/${encodeURIComponent(numericId)}/save`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        fetchSavedJobs();
+      } catch (e) {
+        console.error('Failed to persist saved job in MySQL:', e);
+      }
+    }
   };
 
   const postNewJob = async (jobData) => {
@@ -580,6 +661,7 @@ export const AuthProvider = ({ children }) => {
               ...(prev.jobs || []).filter(j => j.id !== tempId && j.id !== createdJob.id)
             ]
           }));
+          fetchJobs();
         }
       } catch (e) {
         console.error('Failed to post job to MySQL:', e);
@@ -675,8 +757,8 @@ export const AuthProvider = ({ children }) => {
       : jobId;
 
     setData(prev => {
-      const job = prev.jobs.find(j => j.id === jobId || j.id === numericId);
-      const updatedJobs = prev.jobs.map(j => (j.id === jobId || j.id === numericId) ? { ...j, status: 'Approved' } : j);
+      const job = prev.jobs.find(j => matchesJobId(j.id, jobId));
+      const updatedJobs = prev.jobs.map(j => matchesJobId(j.id, jobId) ? { ...j, status: 'Approved' } : j);
       const newNotif = {
         id: `n-${Date.now()}`,
         title: "Job Approved by Admin",
@@ -709,6 +791,7 @@ export const AuthProvider = ({ children }) => {
             ...prev,
             jobs: (prev.jobs || []).map(j => (j.id === jobId || j.id === numericId || j.id === updated.id) ? updated : j)
           }));
+          fetchJobs();
         }
       } catch (e) {
         console.error('Failed to sync job approval to MySQL:', e);
@@ -725,7 +808,7 @@ export const AuthProvider = ({ children }) => {
 
     setData(prev => ({
       ...prev,
-      jobs: prev.jobs.map(j => (j.id === jobId || j.id === numericId) ? { ...j, status: 'Rejected' } : j)
+      jobs: prev.jobs.map(j => matchesJobId(j.id, jobId) ? { ...j, status: 'Rejected' } : j)
     }));
 
     const token = localStorage.getItem('jobconnect_token');
@@ -745,6 +828,7 @@ export const AuthProvider = ({ children }) => {
             ...prev,
             jobs: (prev.jobs || []).map(j => (j.id === jobId || j.id === numericId || j.id === updated.id) ? updated : j)
           }));
+          fetchJobs();
         }
       } catch (e) {
         console.error('Failed to sync job rejection to MySQL:', e);
@@ -754,14 +838,118 @@ export const AuthProvider = ({ children }) => {
     showToast("Job rejected", "info");
   };
 
-  const toggleUserStatus = (userId) => {
+  const deleteJob = async (jobId) => {
+    const numericId = typeof jobId === 'string' && jobId.startsWith('job-')
+      ? parseInt(jobId.replace('job-', ''), 10)
+      : jobId;
+
+    const targetJob = (data.jobs || []).find(j => matchesJobId(j.id, jobId));
+    const jobTitle = targetJob ? targetJob.title : 'Job opening';
+
+    // 1. Optimistic removal from state
     setData(prev => {
-      const updatedUsers = prev.users.map(u => 
-        u.id === userId ? { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' } : u
-      );
-      return { ...prev, users: updatedUsers };
+      const updatedJobs = (prev.jobs || []).filter(j => !matchesJobId(j.id, jobId));
+      const updatedApps = (prev.applications || []).filter(a => !matchesJobId(a.jobId, jobId));
+      const updatedSaved = (prev.savedJobIds || []).filter(id => !matchesJobId(id, jobId));
+
+      const newNotif = {
+        id: `n-${Date.now()}`,
+        title: "Job Opening Removed",
+        text: `'${jobTitle}' and its applicant records have been deleted.`,
+        time: "Just now",
+        type: "job"
+      };
+
+      return {
+        ...prev,
+        jobs: updatedJobs,
+        applications: updatedApps,
+        savedJobIds: updatedSaved,
+        notifications: [newNotif, ...(prev.notifications || [])]
+      };
     });
-    showToast("User account status toggled", "info");
+
+    // 2. Call backend DELETE /api/jobs/:id
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const resData = await res.json().catch(() => null);
+
+        if (!res.ok || (resData && !resData.success)) {
+          const errMsg = resData?.message || 'Failed to delete job posting from server.';
+          showToast(errMsg, 'error');
+          // Revert state by re-fetching live data from MySQL
+          await fetchJobs();
+          await fetchApplications();
+          return { success: false, message: errMsg };
+        }
+
+        // 3. Re-fetch jobs and applications from MySQL to synchronize
+        await fetchJobs();
+        await fetchApplications();
+        showToast(`Job posting "${jobTitle}" was deleted successfully.`, 'success');
+        return { success: true };
+      } catch (err) {
+        console.error('Failed to delete job from MySQL:', err);
+        showToast('Network error while deleting job posting.', 'error');
+        await fetchJobs();
+        await fetchApplications();
+        return { success: false, message: err.message };
+      }
+    }
+
+    showToast(`Job posting "${jobTitle}" deleted`, 'success');
+    return { success: true };
+  };
+
+  const toggleUserStatus = async (userId) => {
+    const target = (data.users || []).find(u => String(u.id) === String(userId));
+    const newStatus = target?.status === 'Active' ? 'Suspended' : 'Active';
+
+    setData(prev => ({
+      ...prev,
+      users: (prev.users || []).map(u => 
+        String(u.id) === String(userId) ? { ...u, status: newStatus } : u
+      )
+    }));
+
+    const token = localStorage.getItem('jobconnect_token');
+    if (token) {
+      try {
+        const numericId = typeof userId === 'string' && userId.startsWith('u-')
+          ? parseInt(userId.replace('u-', ''), 10) || userId
+          : userId;
+        const res = await fetch(`/api/users/${encodeURIComponent(numericId)}/status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const resData = await res.json();
+        if (res.ok && resData.success && resData.data) {
+          setData(prev => ({
+            ...prev,
+            users: (prev.users || []).map(u => 
+              String(u.id) === String(userId) ? { ...u, status: resData.data.status } : u
+            )
+          }));
+          fetchUsers();
+        }
+      } catch (e) {
+        console.error('Failed to sync user status in MySQL:', e);
+      }
+    }
+
+    showToast(`User account status toggled to ${newStatus}`, 'info');
   };
 
   const updateProfile = async (updatedFields) => {
@@ -1087,13 +1275,23 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
+        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
+        if (res.ok) {
+          fetchUsers();
+          const reqRes = await fetch('/api/users/profile-requests', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const reqData = await reqRes.json();
+          if (reqData.success && Array.isArray(reqData.data)) {
+            setData(p => ({ ...p, profileRequests: reqData.data }));
+          }
+        }
       } catch (e) {
         console.error('Failed to sync approval to MySQL:', e);
       }
@@ -1142,7 +1340,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
+        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1150,6 +1348,16 @@ export const AuthProvider = ({ children }) => {
           },
           body: JSON.stringify({ reason })
         });
+        if (res.ok) {
+          fetchUsers();
+          const reqRes = await fetch('/api/users/profile-requests', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const reqData = await reqRes.json();
+          if (reqData.success && Array.isArray(reqData.data)) {
+            setData(p => ({ ...p, profileRequests: reqData.data }));
+          }
+        }
       } catch (e) {
         console.error('Failed to sync rejection to MySQL:', e);
       }
@@ -1413,6 +1621,8 @@ export const AuthProvider = ({ children }) => {
     setTimeout(() => {
       fetchJobs();
       fetchApplications();
+      fetchSavedJobs();
+      fetchUsers();
     }, 50);
   };
 
@@ -1453,9 +1663,12 @@ export const AuthProvider = ({ children }) => {
       postNewJob,
       fetchJobs,
       fetchApplications,
+      fetchSavedJobs,
+      fetchUsers,
       updateApplicationStatus,
       approveJob,
       rejectJob,
+      deleteJob,
       toggleUserStatus,
       addSkill,
       removeSkill,

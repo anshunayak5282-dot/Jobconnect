@@ -23,6 +23,7 @@ export function HrDashboard({
   hrStatusFilter,
   setHrStatusFilter,
   updateApplicationStatus,
+  onDeleteJob,
   previewResume,
   openCandidateDetail
 }) {
@@ -62,6 +63,7 @@ export function HrDashboard({
             setHrJobFilter={setHrJobFilter}
             myCompany={myCompany}
             onOpenPostJob={onOpenPostJob}
+            onDeleteJob={onDeleteJob}
           />
         </div>
 

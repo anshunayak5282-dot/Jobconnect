@@ -232,7 +232,10 @@ router.post('/login', async (req, res) => {
         title: user.title || (user.role === 'user' ? 'Candidate' : user.role === 'hr' ? 'HR Recruiter' : 'Admin'),
         about: user.about || null,
         resume_name: user.resume_name || null,
-        skills: userSkills
+        skills: userSkills,
+        education: user.education || [],
+        experience: user.experience || [],
+        projects: user.projects || []
       }
     });
   } catch (err) {

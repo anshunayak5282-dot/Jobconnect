@@ -30,9 +30,12 @@ export function Home({ initialTab }) {
     postNewJob,
     fetchJobs,
     fetchApplications,
+    fetchSavedJobs,
+    fetchUsers,
     updateApplicationStatus,
     approveJob,
     rejectJob,
+    deleteJob,
     approveProfileRequest,
     rejectProfileRequest,
     toggleUserStatus,
@@ -156,10 +159,19 @@ export function Home({ initialTab }) {
   }, [seekerTab, fetchApplications]);
 
   useEffect(() => {
+    if (seekerTab === 'saved' && fetchSavedJobs) {
+      fetchSavedJobs();
+    }
+  }, [seekerTab, fetchSavedJobs]);
+
+  useEffect(() => {
     if ((currentRole === 'hr' || currentRole === 'admin') && fetchApplications) {
       fetchApplications();
     }
-  }, [currentRole, fetchApplications]);
+    if (currentRole === 'admin' && fetchUsers) {
+      fetchUsers();
+    }
+  }, [currentRole, fetchApplications, fetchUsers]);
 
   const savedJobs = useMemo(() => {
     return (data.jobs || []).filter((j) =>
@@ -409,12 +421,13 @@ export function Home({ initialTab }) {
     setShowEditProfileModal(false);
   };
 
-  const previewResume = (name) => {
+  const previewResume = (name, customResumeDoc, customTitle, customLocation) => {
     const candidateName = name || data.profile?.name || 'Candidate';
-    const resumeDoc = data.profile?.resumeName || `${candidateName.replace(/\s+/g, '_')}_Resume.pdf`;
-    const skillsList = (data.profile?.skills || []).length > 0 ? data.profile.skills.join(', ') : 'Not specified';
+    const resumeDoc = customResumeDoc || (data.profile?.email === data.currentUser?.email ? data.profile?.resumeName : null) || `${candidateName.replace(/\s+/g, '_')}_Resume.pdf`;
+    const title = customTitle || data.profile?.title || 'Job Seeker';
+    const loc = customLocation || data.profile?.location || 'India';
     alert(
-      `[JobConnect PDF Viewer Simulation]\n\nCandidate: ${candidateName}\nResume Document: ${resumeDoc}\nTitle: ${data.profile?.title || 'Job Seeker'}\nLocation: ${data.profile?.location || 'India'}\nSkills: ${skillsList}\nStatus: Verified by JobConnect.`
+      `[JobConnect PDF Viewer Simulation]\n\nCandidate: ${candidateName}\nResume Document: ${resumeDoc}\nTitle: ${title}\nLocation: ${loc}\nStatus: Verified by JobConnect.`
     );
   };
 
@@ -425,20 +438,17 @@ export function Home({ initialTab }) {
   };
 
   const openCandidateDetail = (email) => {
+    if (!email) return;
     if (email === data.profile?.email) {
       setCandidateModalData(data.profile);
       return;
     }
 
-    try {
-      const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
-      if (storedMap[email]) {
-        setCandidateModalData(storedMap[email]);
-        return;
-      }
-    } catch (e) {}
+    const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    fetch(`/api/users/profile/${encodeURIComponent(email)}`)
+    fetch(`/api/users/profile/${encodeURIComponent(email)}`, { headers })
       .then((res) => res.json())
       .then((resData) => {
         if (resData.success && resData.data) {
@@ -455,29 +465,31 @@ export function Home({ initialTab }) {
             projects: user.projects || []
           });
         } else {
+          const app = (data.applications || []).find((a) => (a.applicantEmail || a.applicant?.email || '').toLowerCase() === email.toLowerCase());
           setCandidateModalData({
-            name: 'Sneha Roy',
-            email: 'sneha.roy@example.com',
-            phone: '+91 94321 88990',
-            location: 'Ranchi',
-            about: 'Frontend engineer with hands-on expertise building single-page applications with React and CSS.',
-            skills: ['React', 'JavaScript', 'HTML', 'CSS'],
-            education: [{ degree: 'B.Sc Information Technology', institution: 'Ranchi University', year: '2024' }],
-            experience: [{ company: 'WebStudio', position: 'Junior Dev', startDate: '2024', endDate: '2025', description: 'Created client websites' }],
+            name: app?.applicantName || app?.applicant?.name || 'Candidate',
+            email: email,
+            phone: app?.applicantPhone || app?.applicant?.phone || 'Not provided',
+            location: app?.applicantLocation || app?.applicant?.location || 'India',
+            about: app?.coverLetter || 'Candidate looking for relevant opportunities.',
+            skills: ['General Tech'],
+            education: [],
+            experience: [],
             projects: []
           });
         }
       })
       .catch(() => {
+        const app = (data.applications || []).find((a) => (a.applicantEmail || a.applicant?.email || '').toLowerCase() === email.toLowerCase());
         setCandidateModalData({
-          name: 'Sneha Roy',
-          email: 'sneha.roy@example.com',
-          phone: '+91 94321 88990',
-          location: 'Ranchi',
-          about: 'Frontend engineer with hands-on expertise building single-page applications with React and CSS.',
-          skills: ['React', 'JavaScript', 'HTML', 'CSS'],
-          education: [{ degree: 'B.Sc Information Technology', institution: 'Ranchi University', year: '2024' }],
-          experience: [{ company: 'WebStudio', position: 'Junior Dev', startDate: '2024', endDate: '2025', description: 'Created client websites' }],
+          name: app?.applicantName || app?.applicant?.name || 'Candidate',
+          email: email,
+          phone: app?.applicantPhone || app?.applicant?.phone || 'Not provided',
+          location: app?.applicantLocation || app?.applicant?.location || 'India',
+          about: app?.coverLetter || 'Candidate looking for relevant opportunities.',
+          skills: ['General Tech'],
+          education: [],
+          experience: [],
           projects: []
         });
       });
@@ -606,6 +618,7 @@ export function Home({ initialTab }) {
             hrStatusFilter={hrStatusFilter}
             setHrStatusFilter={setHrStatusFilter}
             updateApplicationStatus={updateApplicationStatus}
+            onDeleteJob={deleteJob}
             previewResume={previewResume}
             openCandidateDetail={openCandidateDetail}
           />

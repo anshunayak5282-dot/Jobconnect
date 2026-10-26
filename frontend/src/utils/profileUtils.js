@@ -17,37 +17,43 @@ export const calculateProfileCompleteness = (p) => {
   return Math.min(score, 100);
 };
 
-// Returns user profile data, checking demo defaults and stored custom profiles
+// Returns user profile data, prioritizing database fields and falling back gracefully
 export const getProfileForUser = (user) => {
   if (!user || !user.email) return null;
-  if (user.email === 'ankit.dev@example.com') {
-    return demoAnkitProfile;
-  }
+  const isAnkit = (user.email || '').toLowerCase() === 'ankit.dev@example.com';
+  const defaults = isAnkit ? demoAnkitProfile : {};
 
-  try {
-    const storedMap = JSON.parse(localStorage.getItem('jobconnect_user_profiles') || '{}');
-    if (storedMap[user.email]) {
-      return storedMap[user.email];
-    }
-  } catch (e) {}
+  const skills = user.skills
+    ? (Array.isArray(user.skills) ? user.skills : String(user.skills).split(',').map((s) => s.trim()).filter(Boolean))
+    : (defaults.skills || []);
+
+  const education = user.education !== undefined && user.education !== null
+    ? (Array.isArray(user.education) ? user.education : (typeof user.education === 'string' ? JSON.parse(user.education) : []))
+    : (defaults.education || []);
+
+  const experience = user.experience !== undefined && user.experience !== null
+    ? (Array.isArray(user.experience) ? user.experience : (typeof user.experience === 'string' ? JSON.parse(user.experience) : []))
+    : (defaults.experience || []);
+
+  const projects = user.projects !== undefined && user.projects !== null
+    ? (Array.isArray(user.projects) ? user.projects : (typeof user.projects === 'string' ? JSON.parse(user.projects) : []))
+    : (defaults.projects || []);
+
+  const resume = user.resume_name || user.resumeName || defaults.resumeName || null;
 
   return {
-    name: user.name || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
+    name: user.name || defaults.name || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
     email: user.email,
-    phone: user.phone || '',
-    company: user.company || user.company_name || '',
-    location: user.location || '',
-    title: user.title || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
-    about: user.about || '',
-    skills: Array.isArray(user.skills)
-      ? user.skills
-      : user.skills
-      ? user.skills.split(',').map((s) => s.trim())
-      : [],
-    education: user.education || [],
-    experience: user.experience || [],
-    projects: user.projects || [],
-    resumeName: user.resume_name || null,
-    resumeUploadDate: user.resume_name ? 'Active' : null
+    phone: user.phone !== null && user.phone !== undefined ? user.phone : (defaults.phone || ''),
+    company: user.company || user.company_name || defaults.company || '',
+    location: user.location !== null && user.location !== undefined ? user.location : (defaults.location || ''),
+    title: user.title || defaults.title || (user.role === 'hr' ? 'HR Recruiter' : 'Candidate'),
+    about: user.about !== null && user.about !== undefined ? user.about : (defaults.about || ''),
+    skills,
+    education,
+    experience,
+    projects,
+    resumeName: resume,
+    resumeUploadDate: resume ? 'Active' : null
   };
 };

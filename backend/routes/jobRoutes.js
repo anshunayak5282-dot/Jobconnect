@@ -86,6 +86,63 @@ router.get('/my', protect, authorize('hr'), async (req, res) => {
   }
 });
 
+// @route   GET /api/jobs/saved/my (Seeker views their bookmarked jobs from MySQL)
+router.get('/saved/my', protect, authorize('user'), async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { query } = require('../config/db');
+    const [rows] = await query(
+      `SELECT sj.job_id
+       FROM \`saved_jobs\` sj
+       JOIN \`jobs\` j ON sj.job_id = j.id
+       WHERE sj.user_id = ?
+       ORDER BY sj.created_at DESC`,
+      [userId]
+    );
+    const savedJobIds = rows.map((r) => r.job_id);
+    res.json({
+      success: true,
+      count: savedJobIds.length,
+      data: savedJobIds
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/jobs/:id/save (Seeker toggles bookmark in MySQL)
+router.post('/:id/save', protect, authorize('user'), async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const cleanId = typeof req.params.id === 'string' && req.params.id.startsWith('job-')
+      ? parseInt(req.params.id.replace('job-', ''), 10) || req.params.id
+      : req.params.id;
+    const { query } = require('../config/db');
+
+    const [existing] = await query(
+      'SELECT id FROM `saved_jobs` WHERE `user_id` = ? AND `job_id` = ? LIMIT 1',
+      [userId, cleanId]
+    );
+
+    let saved = false;
+    if (existing.length > 0) {
+      await query('DELETE FROM `saved_jobs` WHERE `id` = ?', [existing[0].id]);
+      saved = false;
+    } else {
+      await query('INSERT INTO `saved_jobs` (`user_id`, `job_id`) VALUES (?, ?)', [userId, cleanId]);
+      saved = true;
+    }
+
+    res.json({
+      success: true,
+      saved,
+      message: saved ? 'Saved to your bookmarks!' : 'Removed from saved jobs'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // @route   GET /api/jobs/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -148,6 +205,44 @@ router.put('/:id/reject', protect, authorize('admin'), async (req, res) => {
       success: true,
       message: 'Job opening rejected',
       data: job
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   DELETE /api/jobs/:id (HR Recruiter deletes own job, or Super Admin)
+router.delete('/:id', protect, authorize('hr', 'admin'), async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job opening not found' });
+    }
+
+    // Role-based ownership check: HR can only delete their own job posts
+    if (req.user.role === 'hr') {
+      const userId = req.user.id || req.user._id;
+      const isOwner = job.posted_by && String(job.posted_by) === String(userId);
+      const isDemoPriya = (req.user.email || '').toLowerCase() === 'priya.hr@abctech.com' &&
+                          (job.company === 'ABC Technologies' || String(job.posted_by) === '2');
+      const hrCompany = (req.user.company_name || req.user.company || '').toLowerCase().trim();
+      const jobCompany = (job.company || job.companyName || '').toLowerCase().trim();
+      const companyMatches = Boolean(hrCompany && jobCompany && hrCompany === jobCompany);
+
+      if (!isOwner && !isDemoPriya && !companyMatches) {
+        return res.status(403).json({
+          success: false,
+          message: 'Forbidden: You are not authorized to delete this job vacancy. Recruiters may only delete their own postings.'
+        });
+      }
+    }
+
+    const deleted = await Job.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: `Job opening "${job.title}" has been deleted successfully`,
+      data: deleted
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

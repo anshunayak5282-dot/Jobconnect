@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { matchesJobId } from '../../utils/jobUtils';
 
 export function HrJobOpenings({
@@ -7,8 +7,28 @@ export function HrJobOpenings({
   hrJobFilter = 'all',
   setHrJobFilter,
   myCompany,
-  onOpenPostJob
+  onOpenPostJob,
+  onDeleteJob
 }) {
+  const [jobToDelete, setJobToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete || !onDeleteJob) return;
+    setIsDeleting(true);
+    try {
+      const res = await onDeleteJob(jobToDelete.id);
+      if (res && res.success !== false) {
+        if (matchesJobId(hrJobFilter, jobToDelete.id)) {
+          setHrJobFilter('all');
+        }
+        setJobToDelete(null);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
       {/* Panel Header */}
@@ -132,7 +152,7 @@ export function HrJobOpenings({
                   </div>
                 </div>
 
-                {/* Card Bottom: Applicant Count & View Candidates Action */}
+                {/* Card Bottom: Applicant Count & Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md font-extrabold text-[11px] ${
@@ -147,31 +167,120 @@ export function HrJobOpenings({
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setHrJobFilter(isSelected ? 'all' : job.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition active:scale-95 ${
-                      isSelected
-                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
-                        : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60'
-                    }`}
-                  >
-                    <span>{isSelected ? 'Viewing' : 'View Candidates'}</span>
-                    <svg
-                      className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-90' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setJobToDelete(job);
+                      }}
+                      className="p-1.5 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition active:scale-95 shrink-0"
+                      title="Delete vacancy"
+                      aria-label={`Delete vacancy ${job.title}`}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setHrJobFilter(isSelected ? 'all' : job.id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition active:scale-95 ${
+                        isSelected
+                          ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                          : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/60'
+                      }`}
+                    >
+                      <span>{isSelected ? 'Viewing' : 'View Candidates'}</span>
+                      <svg
+                        className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'rotate-90' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })
         )}
       </div>
+
+      {/* Confirmation Modal for Job Deletion */}
+      {jobToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-fade-in space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-lg shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="font-extrabold text-slate-900 text-base">Delete Vacancy?</h4>
+                <p className="text-xs text-slate-500 mt-0.5 break-words">
+                  Are you sure you want to delete <span className="font-bold text-slate-800">"{jobToDelete.title}"</span>?
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setJobToDelete(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <span>⚠️</span> Irreversible Action
+              </p>
+              <p className="text-[11px] text-rose-700 leading-relaxed break-words">
+                This will permanently delete this job post from MySQL. All applicant resumes and pipeline stages attached to this opening will also be safely removed.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setJobToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs transition shadow-md shadow-rose-600/30 flex items-center gap-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Confirm Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

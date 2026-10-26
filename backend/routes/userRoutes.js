@@ -145,7 +145,16 @@ router.get('/profile/:email', async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'Candidate not found' });
     }
-    const { password, ...safeUser } = user;
+    const { password, ...rest } = user;
+    const userSkills = user.skills
+      ? (Array.isArray(user.skills) ? user.skills : (typeof user.skills === 'string' ? user.skills.split(',').map(s => s.trim()).filter(Boolean) : []))
+      : [];
+    const safeUser = {
+      ...rest,
+      company: user.company_name,
+      resumeName: user.resume_name,
+      skills: userSkills
+    };
     res.json({ success: true, data: safeUser });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

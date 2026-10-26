@@ -212,7 +212,35 @@ const initSchemaAndSeed = async () => {
         location: 'Ranchi, Jharkhand',
         title: 'Full Stack MERN Developer',
         about: 'Proactive Full-Stack Software Developer passionate about high-performance web applications with React, Node.js, Express, and MySQL.',
-        skills: 'HTML, CSS, JavaScript, React, Node.js, Express, MySQL, Git, Tailwind CSS'
+        skills: 'HTML, CSS, JavaScript, React, Node.js, Express, MySQL, Git, Tailwind CSS',
+        resume_name: 'Ankit_Kumar_FullStack_Resume.pdf',
+        education: JSON.stringify([
+          { degree: 'B.Tech in Computer Science & Engineering', institution: 'Birla Institute of Technology (BIT)', year: 2025 },
+          { degree: 'Senior Secondary (XII - Science)', institution: 'Delhi Public School, Ranchi', year: 2021 }
+        ]),
+        experience: JSON.stringify([
+          {
+            company: 'TechNova Labs',
+            position: 'Full Stack Intern',
+            startDate: 'Jan 2025',
+            endDate: 'Present',
+            description: 'Built scalable REST API microservices using Node.js and MongoDB. Designed responsive dashboard components in React.'
+          }
+        ]),
+        projects: JSON.stringify([
+          {
+            title: 'JobConnect Recruitment Portal',
+            description: 'Enterprise candidate matching system with JWT authentication, role guards, and live application pipeline.',
+            technologies: ['React', 'Node.js', 'Express', 'MongoDB'],
+            link: 'https://github.com/example/jobconnect'
+          },
+          {
+            title: 'DevMetrics Cloud Dashboard',
+            description: 'Real-time telemetry and monitoring tool for microservices with WebSocket live charts.',
+            technologies: ['React', 'Tailwind', 'Node.js'],
+            link: 'https://github.com/example/devmetrics'
+          }
+        ])
       },
       {
         id: 2,
@@ -227,7 +255,11 @@ const initSchemaAndSeed = async () => {
         location: 'Ranchi, Jharkhand',
         title: 'Lead Technical Recruiter',
         about: 'Head of Talent Acquisition at ABC Technologies overseeing technical hiring.',
-        skills: 'Technical Sourcing, Candidate Screening, Engineering Pipeline'
+        skills: 'Technical Sourcing, Candidate Screening, Engineering Pipeline',
+        resume_name: null,
+        education: null,
+        experience: null,
+        projects: null
       },
       {
         id: 3,
@@ -242,7 +274,11 @@ const initSchemaAndSeed = async () => {
         location: 'New Delhi',
         title: 'Super Administrator',
         about: 'System operations officer managing verification queues and platform moderation.',
-        skills: 'System Security, DB Administration, RBAC'
+        skills: 'System Security, DB Administration, RBAC',
+        resume_name: null,
+        education: null,
+        experience: null,
+        projects: null
       },
       {
         id: 4,
@@ -257,7 +293,15 @@ const initSchemaAndSeed = async () => {
         location: 'Ranchi, Jharkhand',
         title: 'Frontend React Developer',
         about: 'Passionate developer with 1 year experience building clean UI interfaces and responsive components.',
-        skills: 'HTML, CSS, JavaScript, React, Tailwind CSS'
+        skills: 'HTML, CSS, JavaScript, React, Tailwind CSS',
+        resume_name: 'Sneha_Roy_Frontend_Resume.pdf',
+        education: JSON.stringify([
+          { degree: 'B.Sc Information Technology', institution: 'Ranchi University', year: 2024 }
+        ]),
+        experience: JSON.stringify([
+          { company: 'WebStudio', position: 'Junior Dev', startDate: '2024', endDate: '2025', description: 'Created client websites' }
+        ]),
+        projects: JSON.stringify([])
       }
     ];
 
@@ -265,9 +309,9 @@ const initSchemaAndSeed = async () => {
       const [rows] = await pool.query('SELECT id, password FROM `users` WHERE `email` = ?', [demo.email]);
       if (rows.length === 0) {
         await pool.query(
-          `INSERT INTO \`users\` (\`id\`, \`name\`, \`email\`, \`password\`, \`role\`, \`status\`, \`company_name\`, \`phone\`, \`location\`, \`title\`, \`about\`, \`skills\`) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [demo.id, demo.name, demo.email, demo.hashPass, demo.role, demo.status, demo.company_name, demo.phone, demo.location, demo.title, demo.about, demo.skills]
+          `INSERT INTO \`users\` (\`id\`, \`name\`, \`email\`, \`password\`, \`role\`, \`status\`, \`company_name\`, \`phone\`, \`location\`, \`title\`, \`about\`, \`skills\`, \`resume_name\`, \`education\`, \`experience\`, \`projects\`) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [demo.id, demo.name, demo.email, demo.hashPass, demo.role, demo.status, demo.company_name, demo.phone, demo.location, demo.title, demo.about, demo.skills, demo.resume_name, demo.education, demo.experience, demo.projects]
         );
         console.log(`🌱 Seeded demo account in MySQL: ${demo.email}`);
       } else {
@@ -281,6 +325,24 @@ const initSchemaAndSeed = async () => {
         if (!isMatch) {
           await pool.query('UPDATE `users` SET `password` = ? WHERE `id` = ?', [demo.hashPass, rows[0].id]);
           console.log(`🔑 Repaired and verified valid password hash in MySQL for: ${demo.email}`);
+        }
+
+        // Ensure candidate fields in MySQL are populated with valid data
+        if (demo.resume_name) {
+          await pool.query(
+            `UPDATE \`users\` 
+             SET \`resume_name\` = COALESCE(\`resume_name\`, ?),
+                 \`education\` = COALESCE(\`education\`, ?),
+                 \`experience\` = COALESCE(\`experience\`, ?),
+                 \`projects\` = COALESCE(\`projects\`, ?),
+                 \`phone\` = COALESCE(\`phone\`, ?),
+                 \`location\` = COALESCE(\`location\`, ?),
+                 \`title\` = COALESCE(\`title\`, ?),
+                 \`about\` = COALESCE(\`about\`, ?),
+                 \`skills\` = COALESCE(\`skills\`, ?)
+             WHERE \`id\` = ?`,
+            [demo.resume_name, demo.education, demo.experience, demo.projects, demo.phone, demo.location, demo.title, demo.about, demo.skills, demo.id]
+          );
         }
       }
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from '../router';
 import { useAuth } from '../context/AuthContext';
 import { demoAnkitProfile } from '../data/initialData';
+import { getProfileForUser } from '../utils/profileUtils';
 import { AuthHeroShowcase } from '../components/auth/AuthHeroShowcase';
 import { DemoCredentialsBar } from '../components/auth/DemoCredentialsBar';
 import { LoginForm } from '../components/auth/LoginForm';
@@ -232,9 +233,7 @@ export function Login() {
 
     state.currentUserRole = targetRole;
     state.currentUser = demoUser;
-    if (targetRole === 'seeker') {
-      state.profile = demoAnkitProfile;
-    }
+    state.profile = getProfileForUser(demoUser);
     localStorage.setItem('jobconnect_state', JSON.stringify(state));
 
     showToast(
@@ -339,40 +338,7 @@ export function Login() {
       state.currentUserRole = targetRole;
       state.currentUser = data.user;
 
-      if (targetRole === 'seeker') {
-        if (data.user.email !== 'ankit.dev@example.com') {
-          state.profile = {
-            name: data.user.name,
-            email: data.user.email,
-            phone: data.user.phone || '',
-            location: data.user.location || '',
-            title: data.user.title || 'Candidate',
-            about: data.user.about || '',
-            skills: data.user.skills ? (Array.isArray(data.user.skills) ? data.user.skills : data.user.skills.split(',').map((s) => s.trim())) : [],
-            education: data.user.education || [],
-            experience: data.user.experience || [],
-            projects: data.user.projects || [],
-            resumeName: data.user.resume_name || null,
-            resumeUploadDate: data.user.resume_name ? 'Active' : null
-          };
-        } else {
-          state.profile = demoAnkitProfile;
-        }
-      } else if (targetRole === 'hr') {
-        state.profile = {
-          name: data.user.name,
-          email: data.user.email,
-          phone: data.user.phone || '',
-          company: data.user.company || data.user.company_name || '',
-          location: data.user.location || '',
-          title: data.user.title || 'HR Recruiter',
-          about: data.user.about || '',
-          skills: data.user.skills ? (Array.isArray(data.user.skills) ? data.user.skills : data.user.skills.split(',').map((s) => s.trim())) : [],
-          education: data.user.education || [],
-          experience: data.user.experience || [],
-          projects: []
-        };
-      }
+      state.profile = getProfileForUser(data.user);
       localStorage.setItem('jobconnect_state', JSON.stringify(state));
 
       showToast(`Welcome back, ${data.user.name}! Authenticated via MySQL.`, 'success');
@@ -442,7 +408,7 @@ export function Login() {
       }
 
       const newUser = {
-        id: data.user?.id ? `u-${data.user.id}` : `u-${Date.now()}`,
+        id: data.user?.id || Date.now(),
         name: regName.trim(),
         email: regEmail.trim(),
         phone: regPhone.trim(),

@@ -2,10 +2,24 @@ const { query } = require('../config/db');
 const User = require('./User');
 
 const ProfileRequest = {
-  // Create a new profile edit request
+  // Create a new profile edit request or update existing pending request
   async create({ userId, userName, userEmail, currentData, proposedData }) {
     const currentJson = typeof currentData === 'string' ? currentData : JSON.stringify(currentData || {});
     const proposedJson = typeof proposedData === 'string' ? proposedData : JSON.stringify(proposedData || {});
+
+    // Check if user already has an active pending request
+    const [existing] = await query(
+      "SELECT id FROM `profile_requests` WHERE `user_id` = ? AND `status` = 'Pending' LIMIT 1",
+      [userId]
+    );
+
+    if (existing.length > 0) {
+      await query(
+        "UPDATE `profile_requests` SET `proposed_data` = ?, `current_data` = ?, `user_name` = ?, `user_email` = ?, `updated_at` = NOW() WHERE `id` = ?",
+        [proposedJson, currentJson, userName, userEmail, existing[0].id]
+      );
+      return this.findById(existing[0].id);
+    }
 
     const [result] = await query(
       'INSERT INTO `profile_requests` (`user_id`, `user_name`, `user_email`, `current_data`, `proposed_data`, `status`) VALUES (?, ?, ?, ?, ?, ?)',

@@ -153,6 +153,17 @@ const Job = {
     const cleanId = cleanJobId(id);
     await query('UPDATE `jobs` SET `status` = ? WHERE `id` = ?', [status, cleanId]);
     return this.findById(cleanId);
+  },
+
+  // Delete job and clean up related applications safely
+  async findByIdAndDelete(id) {
+    const cleanId = cleanJobId(id);
+    const existing = await this.findById(cleanId);
+    if (!existing) return null;
+    await query('DELETE FROM `applications` WHERE `job_id` = ?', [cleanId]);
+    await query('DELETE FROM `saved_jobs` WHERE `job_id` = ?', [cleanId]);
+    await query('DELETE FROM `jobs` WHERE `id` = ?', [cleanId]);
+    return existing;
   }
 };
 

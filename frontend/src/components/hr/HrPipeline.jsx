@@ -115,7 +115,7 @@ export function HrPipeline({
                     </span>
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <button
-                        onClick={() => previewResume(app.applicantName)}
+                        onClick={() => previewResume(app.applicantName, app.resumeUrl || app.resume, 'Candidate', app.applicantLocation)}
                         className="px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 font-bold text-[11px] hover:bg-indigo-100"
                       >
                         View Resume PDF

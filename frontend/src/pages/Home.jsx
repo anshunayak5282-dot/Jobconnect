@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from '../router';
+import { useNavigate, useLocation } from '../router';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/common/Navbar';
 import { Footer } from '../components/common/Footer';
@@ -15,8 +15,9 @@ import { RejectProfileModal } from '../components/modals/RejectProfileModal';
 import { calculateProfileCompleteness } from '../utils/profileUtils';
 import { matchesJobId } from '../utils/jobUtils';
 
-export function Home() {
+export function Home({ initialTab }) {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
   const {
     data,
     toasts,
@@ -78,8 +79,34 @@ export function Home() {
     description: ''
   });
 
-  // Seeker active sub-tab ('explore' | 'applications' | 'saved' | 'profile')
-  const [seekerTab, setSeekerTab] = useState('explore');
+  // Seeker active sub-tab ('explore' | 'applications' | 'saved' | 'profile') synchronized with route pathname
+  const getTabFromPath = (path) => {
+    if (path === '/jobs') return 'explore';
+    if (path === '/saved' || path === '/saved-jobs') return 'saved';
+    if (path === '/profile' || path === '/my-profile') return 'profile';
+    if (path === '/dashboard' || path === '/applications') return 'applications';
+    return initialTab || 'explore';
+  };
+
+  const [seekerTab, setSeekerTabState] = useState(() => getTabFromPath(routeLocation.pathname));
+
+  useEffect(() => {
+    const tab = getTabFromPath(routeLocation.pathname);
+    setSeekerTabState(tab);
+  }, [routeLocation.pathname, initialTab]);
+
+  const handleSetSeekerTab = (tab) => {
+    setSeekerTabState(tab);
+    if (tab === 'explore') {
+      navigate('/jobs');
+    } else if (tab === 'applications') {
+      navigate('/dashboard');
+    } else if (tab === 'saved') {
+      navigate('/saved');
+    } else if (tab === 'profile') {
+      navigate('/profile');
+    }
+  };
 
   // Search & Filter state
   const [keyword, setKeyword] = useState('');
@@ -478,7 +505,7 @@ export function Home() {
         currentUser={data.currentUser}
         profile={data.profile}
         seekerTab={seekerTab}
-        setSeekerTab={setSeekerTab}
+        setSeekerTab={handleSetSeekerTab}
         myApplicationsCount={myApplications.length}
         savedJobsCount={savedJobs.length}
         adminPendingCount={adminPendingJobs.length}
@@ -493,7 +520,7 @@ export function Home() {
         {currentRole === 'seeker' && (
           <SeekerDashboard
             seekerTab={seekerTab}
-            setSeekerTab={setSeekerTab}
+            setSeekerTab={handleSetSeekerTab}
             filteredJobs={filteredJobs}
             allJobs={data.jobs}
             keyword={keyword}
@@ -602,7 +629,7 @@ export function Home() {
         onApply={handleApplySubmit}
         onRedirectToProfile={() => {
           setSelectedJobDetail(null);
-          setSeekerTab('profile');
+          handleSetSeekerTab('profile');
         }}
       />
 

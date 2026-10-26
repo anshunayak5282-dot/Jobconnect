@@ -244,7 +244,13 @@ export function Login() {
 
     setTimeout(() => {
       setIsSubmitting(false);
-      navigate('/');
+      const destination =
+        targetRole === 'hr'
+          ? '/recruiter/dashboard'
+          : targetRole === 'admin'
+          ? '/admin/dashboard'
+          : '/dashboard';
+      navigate(destination);
     }, 600);
   };
 
@@ -373,7 +379,13 @@ export function Login() {
 
       setTimeout(() => {
         setIsSubmitting(false);
-        navigate('/');
+        const destination =
+          targetRole === 'hr'
+            ? '/recruiter/dashboard'
+            : targetRole === 'admin'
+            ? '/admin/dashboard'
+            : '/dashboard';
+        navigate(destination);
       }, 700);
     } catch (err) {
       console.error('Login error:', err);
@@ -501,7 +513,7 @@ export function Login() {
     <div className="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
       {/* ================= TOP NAV BAR ================= */}
       <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 group">
+        <Link to="/login" className="flex items-center gap-3 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -517,48 +529,37 @@ export function Login() {
           </div>
         </Link>
 
-        {/* Desktop Quick Nav Actions */}
-        {/* <div className="hidden sm:flex items-center gap-3">
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-2 rounded-xl transition border border-indigo-100/80"
+        {/* Mobile Hamburger Toggle Button - only visible if authenticated */}
+        {isLoggedIn && (
+          <button
+            type="button"
+            onClick={() => setShowMobileNav((prev) => !prev)}
+            className="sm:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            title="Toggle Navigation Menu"
+            aria-label="Toggle Navigation Menu"
+            aria-expanded={showMobileNav}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span>Explore Open Jobs</span>
-          </Link>
-        </div> */}
-
-        {/* Mobile Hamburger Toggle Button */}
-        {/* <button
-          type="button"
-          onClick={() => setShowMobileNav((prev) => !prev)}
-          className="sm:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-          title="Toggle Navigation Menu"
-          aria-label="Toggle Navigation Menu"
-          aria-expanded={showMobileNav}
-        >
-          {showMobileNav ? (
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button> */}
+            {showMobileNav ? (
+              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        )}
 
         {/* Mobile Dropdown Menu Container */}
-        {showMobileNav && (
+        {isLoggedIn && showMobileNav && (
           <div className="sm:hidden absolute top-full left-0 right-0 bg-white/98 backdrop-blur-xl border-b border-slate-200 shadow-2xl px-4 py-4 space-y-3 animate-fade-in text-xs z-50">
             <div className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Auth Navigation
             </div>
 
             <Link
-              to="/"
+              to="/jobs"
               onClick={() => setShowMobileNav(false)}
               className="w-full px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs"
             >
@@ -653,7 +654,7 @@ export function Login() {
       </header>
 
       {/* Backdrop overlay for mobile login nav */}
-      {showMobileNav && (
+      {isLoggedIn && showMobileNav && (
         <div
           className="fixed inset-0 top-16 bg-slate-900/40 backdrop-blur-xs z-30 sm:hidden animate-fade-in"
           onClick={() => setShowMobileNav(false)}

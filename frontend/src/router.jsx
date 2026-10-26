@@ -17,6 +17,10 @@ export function BrowserRouter({ children }) {
   }, []);
 
   const navigate = (to, options) => {
+    if (typeof to === 'number') {
+      window.history.go(to);
+      return;
+    }
     if (typeof to !== 'string') return;
     if (to.startsWith('http://') || to.startsWith('https://')) {
       window.location.href = to;
@@ -86,11 +90,27 @@ export function Routes({ children }) {
 
   const current = cleanPath(pathname);
 
+  // Flatten children (including fragments, arrays, and conditional elements)
+  const flatChildren = [];
+  const flatten = (nodes) => {
+    React.Children.forEach(nodes, (node) => {
+      if (!node) return;
+      if (node.type === React.Fragment) {
+        flatten(node.props?.children);
+      } else if (Array.isArray(node)) {
+        flatten(node);
+      } else if (React.isValidElement(node)) {
+        flatChildren.push(node);
+      }
+    });
+  };
+  flatten(children);
+
   let matchedElement = null;
 
   // 1. Exact match
-  React.Children.forEach(children, (child) => {
-    if (!React.isValidElement(child) || matchedElement) return;
+  for (const child of flatChildren) {
+    if (!child.props || !child.props.path) continue;
     const routePath = cleanPath(child.props.path);
     if (
       routePath === current ||
@@ -98,17 +118,19 @@ export function Routes({ children }) {
       (current === '/login.html' && routePath === '/login')
     ) {
       matchedElement = child.props.element;
+      break;
     }
-  });
+  }
 
   // 2. Wildcard fallback
   if (!matchedElement) {
-    React.Children.forEach(children, (child) => {
-      if (!React.isValidElement(child) || matchedElement) return;
+    for (const child of flatChildren) {
+      if (!child.props) continue;
       if (child.props.path === '*') {
         matchedElement = child.props.element;
+        break;
       }
-    });
+    }
   }
 
   return matchedElement;
@@ -119,7 +141,7 @@ export function Route({ path, element }) {
 }
 
 export function Link({ to, children, className, onClick, ...props }) {
-  const { navigate } = useContext(RouterContext);
+  const { pathname, navigate } = useContext(RouterContext);
 
   const handleClick = (e) => {
     if (onClick) onClick(e);
@@ -129,12 +151,65 @@ export function Link({ to, children, className, onClick, ...props }) {
     }
   };
 
+  const cleanPath = (p) => {
+    if (!p) return '/';
+    let path = p.replace(/\/+$/, '');
+    if (path === '') path = '/';
+    return path;
+  };
+
+  const current = cleanPath(pathname);
+  const target = cleanPath(to);
+  const isActive = current === target;
+  const resolvedClassName = typeof className === 'function' ? className({ isActive }) : className;
+
   return React.createElement(
     'a',
-    { href: to, className, onClick: handleClick, ...props },
-    children
+    { href: to, className: resolvedClassName, onClick: handleClick, ...props },
+    typeof children === 'function' ? children({ isActive }) : children
   );
 }
 
-export const NavLink = Link;
+export function NavLink({ to, children, className, onClick, end, style, ...props }) {
+  const { pathname, navigate } = useContext(RouterContext);
+
+  const cleanPath = (p) => {
+    if (!p) return '/';
+    let path = p.replace(/\/+$/, '');
+    if (path === '') path = '/';
+    return path;
+  };
+
+  const current = cleanPath(pathname);
+  const target = cleanPath(to);
+  const isActive = end
+    ? current === target
+    : (current === target || (target !== '/' && current.startsWith(target + '/')));
+
+  const handleClick = (e) => {
+    if (onClick) onClick(e);
+    if (!e.defaultPrevented && e.button === 0 && !e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+      e.preventDefault();
+      navigate(to);
+    }
+  };
+
+  const resolvedClassName = typeof className === 'function' ? className({ isActive }) : className;
+  const resolvedStyle = typeof style === 'function' ? style({ isActive }) : style;
+  const resolvedChildren = typeof children === 'function' ? children({ isActive }) : children;
+
+  return React.createElement(
+    'a',
+    {
+      href: to,
+      className: resolvedClassName,
+      style: resolvedStyle,
+      onClick: handleClick,
+      'aria-current': isActive ? 'page' : undefined,
+      ...props
+    },
+    resolvedChildren
+  );
+}
+
 export function Outlet() { return null; }

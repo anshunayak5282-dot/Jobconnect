@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { matchesJobId } from '../../utils/jobUtils';
 
 export function HrJobOpenings({
@@ -12,6 +13,26 @@ export function HrJobOpenings({
 }) {
   const [jobToDelete, setJobToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Lock body scroll and handle Escape key while delete confirmation modal is open
+  useEffect(() => {
+    if (!jobToDelete) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isDeleting) {
+        setJobToDelete(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [jobToDelete, isDeleting]);
 
   const handleConfirmDelete = async () => {
     if (!jobToDelete || !onDeleteJob) return;
@@ -171,12 +192,13 @@ export function HrJobOpenings({
                     <button
                       type="button"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setJobToDelete(job);
                       }}
                       className="p-1.5 rounded-xl border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition active:scale-95 shrink-0"
-                      title="Delete vacancy"
-                      aria-label={`Delete vacancy ${job.title}`}
+                      title="Delete Post"
+                      aria-label={`Delete Post ${job.title}`}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -210,10 +232,23 @@ export function HrJobOpenings({
         )}
       </div>
 
-      {/* Confirmation Modal for Job Deletion */}
-      {jobToDelete && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-fade-in space-y-4">
+      {/* Delete Vacancy Confirmation Modal (Portaled to document.body to prevent layout distortion) */}
+      {jobToDelete && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeleting) {
+              setJobToDelete(null);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-fade-in space-y-4 relative my-auto"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-vacancy-modal-title"
+          >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-lg shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,7 +256,7 @@ export function HrJobOpenings({
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="font-extrabold text-slate-900 text-base">Delete Vacancy?</h4>
+                <h4 id="delete-vacancy-modal-title" className="font-extrabold text-slate-900 text-base">Delete Vacancy?</h4>
                 <p className="text-xs text-slate-500 mt-0.5 break-words">
                   Are you sure you want to delete <span className="font-bold text-slate-800">"{jobToDelete.title}"</span>?
                 </p>
@@ -230,7 +265,8 @@ export function HrJobOpenings({
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setJobToDelete(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold p-1 shrink-0"
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 shrink-0 transition"
+                aria-label="Close modal"
               >
                 ✕
               </button>
@@ -250,7 +286,7 @@ export function HrJobOpenings({
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setJobToDelete(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition active:scale-95"
               >
                 Cancel
               </button>
@@ -279,7 +315,8 @@ export function HrJobOpenings({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

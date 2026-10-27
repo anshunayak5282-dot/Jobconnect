@@ -5,9 +5,11 @@ export function JobCard({
   isSaved,
   hasApplied,
   profileCompleteness,
+  isLoggedIn = true,
   onToggleSave,
   onOpenDetail,
-  onRedirectToProfile
+  onRedirectToProfile,
+  onRequireLogin
 }) {
   const companyName = job.company || job.companyName || 'Company';
   const skillsList = Array.isArray(job.skills)
@@ -71,7 +73,13 @@ export function JobCard({
       <div className="flex flex-wrap sm:flex-nowrap items-center md:flex-col justify-between sm:justify-end gap-2 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-end">
           <button
-            onClick={() => onToggleSave(job.id)}
+            onClick={() => {
+              if (!isLoggedIn) {
+                if (onRequireLogin) onRequireLogin({ type: 'save', jobId: job.id });
+                return;
+              }
+              onToggleSave(job.id);
+            }}
             title={isSaved ? 'Remove from saved' : 'Save job'}
             className={`p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition shrink-0 ${
               isSaved
@@ -89,7 +97,16 @@ export function JobCard({
             </svg>
           </button>
 
-          {hasApplied ? (
+          {!isLoggedIn ? (
+            <button
+              onClick={() => {
+                if (onRequireLogin) onRequireLogin({ type: 'apply', jobId: job.id });
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs transition shadow-md shadow-indigo-600/20 shrink-0 w-full sm:w-auto text-center"
+            >
+              Apply Now
+            </button>
+          ) : hasApplied ? (
             <button
               onClick={() => onOpenDetail(job)}
               className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"

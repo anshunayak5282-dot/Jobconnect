@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from '../router';
+import { Link, useNavigate, useLocation } from '../router';
 import { useAuth } from '../context/AuthContext';
 import { demoAnkitProfile } from '../data/initialData';
 import { getProfileForUser } from '../utils/profileUtils';
@@ -11,6 +11,7 @@ import { ToastContainer } from '../components/common/ToastContainer';
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth?.() || {};
   const { showToast: authShowToast, removeToast: authRemoveToast } = auth;
 
@@ -93,6 +94,44 @@ export function Login() {
     }
   };
 
+  // Notify user if arriving from a protected feature or route
+  useEffect(() => {
+    let returnUrl = location.state?.from;
+    let pending = location.state?.pendingAction;
+    if (!returnUrl && typeof window !== 'undefined') {
+      returnUrl = sessionStorage.getItem('jobconnect_redirect');
+    }
+    if (!pending && typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('jobconnect_pending_action');
+        if (stored) pending = JSON.parse(stored);
+      } catch (e) {}
+    }
+
+    if (pending?.type === 'apply') {
+      showToast('Please sign in as Candidate to apply for this vacancy.', 'info');
+      setLoginRole('seeker');
+    } else if (pending?.type === 'save') {
+      showToast('Please sign in as Candidate to bookmark this job.', 'info');
+      setLoginRole('seeker');
+    } else if (returnUrl === '/applications') {
+      showToast('Please sign in to access your job applications.', 'info');
+      setLoginRole('seeker');
+    } else if (returnUrl === '/saved' || returnUrl === '/saved-jobs') {
+      showToast('Please sign in to view your saved jobs.', 'info');
+      setLoginRole('seeker');
+    } else if (returnUrl === '/profile' || returnUrl === '/my-profile') {
+      showToast('Please sign in to view your profile and resume.', 'info');
+      setLoginRole('seeker');
+    } else if (returnUrl?.includes('/recruiter') || returnUrl?.includes('/hr')) {
+      showToast('Please sign in to access Enterprise Recruiter Portal.', 'info');
+      setLoginRole('hr');
+    } else if (returnUrl?.includes('/admin')) {
+      showToast('Please sign in to access Super Admin Console.', 'info');
+      setLoginRole('admin');
+    }
+  }, []);
+
   const fillDemoCredentials = (role) => {
     setAuthMode('login');
     if (role === 'user') {
@@ -138,6 +177,64 @@ export function Login() {
         }
       });
     }
+  };
+
+  const getPostLoginDestination = (targetRole) => {
+    let returnUrl = null;
+    let pendingAction = null;
+
+    if (location.state?.from) {
+      returnUrl = location.state.from;
+    }
+    if (location.state?.pendingAction) {
+      pendingAction = location.state.pendingAction;
+    }
+
+    if (!returnUrl && typeof window !== 'undefined') {
+      returnUrl = sessionStorage.getItem('jobconnect_redirect');
+    }
+    if (!pendingAction && typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('jobconnect_pending_action');
+        if (stored) pendingAction = JSON.parse(stored);
+      } catch (e) {}
+    }
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('jobconnect_redirect');
+    }
+
+    const defaultPath =
+      targetRole === 'hr'
+        ? '/recruiter/dashboard'
+        : targetRole === 'admin'
+        ? '/admin/dashboard'
+        : '/dashboard';
+
+    if (!returnUrl || returnUrl === '/login' || returnUrl === '/') {
+      return { path: defaultPath, pendingAction };
+    }
+
+    // Role-based destination verification
+    if (targetRole === 'seeker') {
+      const candidateAllowed = ['/dashboard', '/jobs', '/applications', '/saved', '/saved-jobs', '/profile', '/my-profile'];
+      const isAllowed = candidateAllowed.some((p) => returnUrl === p || returnUrl.startsWith(p + '/'));
+      return { path: isAllowed ? returnUrl : '/dashboard', pendingAction };
+    }
+
+    if (targetRole === 'hr') {
+      const hrAllowed = ['/recruiter/dashboard', '/recruiter', '/hr/dashboard', '/hr'];
+      const isAllowed = hrAllowed.some((p) => returnUrl === p || returnUrl.startsWith(p + '/'));
+      return { path: isAllowed ? returnUrl : '/recruiter/dashboard', pendingAction: null };
+    }
+
+    if (targetRole === 'admin') {
+      const adminAllowed = ['/admin/dashboard', '/admin'];
+      const isAllowed = adminAllowed.some((p) => returnUrl === p || returnUrl.startsWith(p + '/'));
+      return { path: isAllowed ? returnUrl : '/admin/dashboard', pendingAction: null };
+    }
+
+    return { path: defaultPath, pendingAction };
   };
 
   const applyDemoLogin = (roleType) => {
@@ -243,13 +340,8 @@ export function Login() {
 
     setTimeout(() => {
       setIsSubmitting(false);
-      const destination =
-        targetRole === 'hr'
-          ? '/recruiter/dashboard'
-          : targetRole === 'admin'
-          ? '/admin/dashboard'
-          : '/dashboard';
-      navigate(destination);
+      const { path: destination, pendingAction } = getPostLoginDestination(targetRole);
+      navigate(destination, { state: { pendingAction } });
     }, 600);
   };
 
@@ -345,13 +437,8 @@ export function Login() {
 
       setTimeout(() => {
         setIsSubmitting(false);
-        const destination =
-          targetRole === 'hr'
-            ? '/recruiter/dashboard'
-            : targetRole === 'admin'
-            ? '/admin/dashboard'
-            : '/dashboard';
-        navigate(destination);
+        const { path: destination, pendingAction } = getPostLoginDestination(targetRole);
+        navigate(destination, { state: { pendingAction } });
       }, 700);
     } catch (err) {
       console.error('Login error:', err);
@@ -479,12 +566,12 @@ export function Login() {
     <div className="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
       {/* ================= TOP NAV BAR ================= */}
       <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <Link to="/login" className="flex items-center gap-3 group">
+        <Link to="/dashboard" className="flex items-center gap-3 group" title="JobConnect - Explore Jobs">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
             </svg>
-          </div>
+          </div> 
           <div>
             <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-slate-900 to-indigo-700 bg-clip-text text-transparent">
               JobConnect
@@ -495,27 +582,7 @@ export function Login() {
           </div>
         </Link>
 
-        {/* Mobile Hamburger Toggle Button - only visible if authenticated */}
-        {isLoggedIn && (
-          <button
-            type="button"
-            onClick={() => setShowMobileNav((prev) => !prev)}
-            className="sm:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/80 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-            title="Toggle Navigation Menu"
-            aria-label="Toggle Navigation Menu"
-            aria-expanded={showMobileNav}
-          >
-            {showMobileNav ? (
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
-        )}
+        
 
         {/* Mobile Dropdown Menu Container */}
         {isLoggedIn && showMobileNav && (

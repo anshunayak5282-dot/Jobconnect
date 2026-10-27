@@ -99,7 +99,36 @@ export function Home({ initialTab }) {
     setSeekerTabState(tab);
   }, [routeLocation.pathname, initialTab]);
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
+  const isLoggedIn = Boolean(token && data?.currentUser && data?.currentUser?.status !== 'Suspended');
+
+  const handleRequireLogin = (pendingAction = null) => {
+    const fromPath = routeLocation.pathname || '/dashboard';
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('jobconnect_redirect', fromPath);
+      if (pendingAction) {
+        sessionStorage.setItem('jobconnect_pending_action', JSON.stringify(pendingAction));
+      } else {
+        sessionStorage.removeItem('jobconnect_pending_action');
+      }
+    }
+    navigate('/login', {
+      state: {
+        from: fromPath,
+        pendingAction
+      }
+    });
+  };
+
   const handleSetSeekerTab = (tab) => {
+    if (!isLoggedIn && tab !== 'explore') {
+      const targetPath = tab === 'applications' ? '/applications' : tab === 'saved' ? '/saved' : '/profile';
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('jobconnect_redirect', targetPath);
+      }
+      navigate('/login', { state: { from: targetPath } });
+      return;
+    }
     setSeekerTabState(tab);
     if (tab === 'explore') {
       navigate('/dashboard');
@@ -368,11 +397,53 @@ export function Home({ initialTab }) {
     );
   };
 
+  const handleToggleSaveJob = (jobId) => {
+    if (!isLoggedIn) {
+      handleRequireLogin({ type: 'save', jobId });
+      return;
+    }
+    toggleSaveJob(jobId);
+  };
+
+  // Consume pending actions (apply or save) after returning from login
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let pending = routeLocation.state?.pendingAction;
+    if (!pending && typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('jobconnect_pending_action');
+        if (stored) {
+          pending = JSON.parse(stored);
+        }
+      } catch (e) {}
+    }
+
+    if (!pending) return;
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('jobconnect_pending_action');
+    }
+
+    if (pending.type === 'apply' && pending.jobId) {
+      const targetJob = (data.jobs || []).find((j) => matchesJobId(j.id, pending.jobId));
+      if (targetJob) {
+        handleOpenJobDetail(targetJob);
+      }
+    } else if (pending.type === 'save' && pending.jobId) {
+      toggleSaveJob(pending.jobId);
+    }
+  }, [isLoggedIn, data.jobs, routeLocation.state]);
+
   const handleApplySubmit = (jobId) => {
+    if (!isLoggedIn) {
+      handleRequireLogin({ type: 'apply', jobId });
+      return;
+    }
     if (profileCompleteness < 100) {
       showToast('Complete your profile to 100% to apply for jobs.', 'error');
       setSelectedJobDetail(null);
-      setSeekerTab('profile');
+      handleSetSeekerTab('profile');
       return;
     }
     applyForJob(jobId, coverLetter || 'Interested in the opportunity.');
@@ -573,12 +644,14 @@ export function Home({ initialTab }) {
             currentUser={data.currentUser}
             profileCompleteness={profileCompleteness}
             userInitials={userInitials}
+            isLoggedIn={isLoggedIn}
             myApplications={myApplications}
             savedJobs={savedJobs}
             stages={stages}
-            onToggleSave={toggleSaveJob}
+            onToggleSave={handleToggleSaveJob}
             onOpenJobDetail={handleOpenJobDetail}
             onOpenEditProfileModal={handleOpenEditProfile}
+            onRequireLogin={handleRequireLogin}
             previewResume={previewResume}
             uploadResume={uploadResume}
             simulateUploadResume={handleUploadResume}
@@ -656,6 +729,7 @@ export function Home({ initialTab }) {
         applications={data.applications}
         profile={data.profile}
         profileCompleteness={profileCompleteness}
+        isLoggedIn={isLoggedIn}
         coverLetter={coverLetter}
         setCoverLetter={setCoverLetter}
         onApply={handleApplySubmit}
@@ -663,6 +737,7 @@ export function Home({ initialTab }) {
           setSelectedJobDetail(null);
           handleSetSeekerTab('profile');
         }}
+        onRequireLogin={handleRequireLogin}
       />
 
       {/* ================= MODAL 2: POST JOB MODAL ================= */}

@@ -28,12 +28,14 @@ export function SeekerDashboard({
   currentUser,
   profileCompleteness,
   userInitials,
+  isLoggedIn = true,
   myApplications,
   savedJobs,
   stages,
   onToggleSave,
   onOpenJobDetail,
   onOpenEditProfileModal,
+  onRequireLogin,
   previewResume,
   uploadResume,
   simulateUploadResume,
@@ -70,9 +72,11 @@ export function SeekerDashboard({
           applications={applications}
           profile={profile}
           profileCompleteness={profileCompleteness}
+          isLoggedIn={isLoggedIn}
           onToggleSave={onToggleSave}
           onOpenJobDetail={onOpenJobDetail}
           onRedirectToProfile={() => setSeekerTab('profile')}
+          onRequireLogin={onRequireLogin}
         />
       )}
 

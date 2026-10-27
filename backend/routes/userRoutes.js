@@ -138,8 +138,8 @@ router.put('/profile-requests/:id/reject', protect, authorize('admin'), async (r
   }
 });
 
-// @route   GET /api/users/profile/:email
-router.get('/profile/:email', async (req, res) => {
+// @route   GET /api/users/profile/:email (Protected - requires authenticated session)
+router.get('/profile/:email', protect, async (req, res) => {
   try {
     const user = await User.findOne({ email: req.params.email });
     if (!user) {

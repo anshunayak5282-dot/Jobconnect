@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, NavLink } from '../../router';
+import { Link, NavLink, useNavigate } from '../../router';
 
 export function Navbar({
   currentRole,
@@ -15,6 +15,7 @@ export function Navbar({
   onOpenEditProfile,
   onLogout
 }) {
+  const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -95,7 +96,17 @@ export function Navbar({
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`
                   }
-                  onClick={() => setSeekerTab?.('applications')}
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('jobconnect_redirect', '/applications');
+                      }
+                      navigate('/login', { state: { from: '/applications' } });
+                      return;
+                    }
+                    setSeekerTab?.('applications');
+                  }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -112,7 +123,17 @@ export function Navbar({
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`
                   }
-                  onClick={() => setSeekerTab?.('saved')}
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('jobconnect_redirect', '/saved');
+                      }
+                      navigate('/login', { state: { from: '/saved' } });
+                      return;
+                    }
+                    setSeekerTab?.('saved');
+                  }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
@@ -129,7 +150,17 @@ export function Navbar({
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`
                   }
-                  onClick={() => setSeekerTab?.('profile')}
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      if (typeof window !== 'undefined') {
+                        sessionStorage.setItem('jobconnect_redirect', '/profile');
+                      }
+                      navigate('/login', { state: { from: '/profile' } });
+                      return;
+                    }
+                    setSeekerTab?.('profile');
+                  }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7 7z"></path>
@@ -164,180 +195,194 @@ export function Navbar({
             )}
           </nav>
 
-          {/* User Account Icon & Dropdown Menu with Logout */}
+          {/* User Account Area: Login button for public visitors vs Avatar menu for logged-in users */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowUserMenu((prev) => !prev);
-                  setShowMobileMenu(false);
-                  setShowNotifPanel(false);
-                }}
-                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-full border border-slate-200/80 cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-                title="Account Menu & Settings"
-                aria-haspopup="true"
-                aria-expanded={showUserMenu}
-              >
-                <div
-                  className={`w-7 h-7 rounded-full text-white font-black text-xs flex items-center justify-center shadow-sm ${
-                    currentRole === 'seeker'
-                      ? 'bg-indigo-600'
-                      : currentRole === 'hr'
-                      ? 'bg-purple-600'
-                      : 'bg-rose-600'
-                  }`}
-                >
-                  {userInitials}
-                </div>
-                <div className="text-left hidden sm:block">
-                  <p className="text-xs font-bold text-slate-800 leading-tight">
-                    {profile?.name || currentUser?.name || 'Account'}
-                  </p>
-                  <p className="text-[10px] text-slate-500 leading-none capitalize">
-                    {currentRole === 'seeker' ? 'Candidate' : currentRole === 'hr' ? 'HR Recruiter' : 'Admin'}
-                  </p>
-                </div>
-                <svg
-                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-                    showUserMenu ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
+            {isLoggedIn ? (
+              <>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu((prev) => !prev);
+                      setShowMobileMenu(false);
+                      setShowNotifPanel(false);
+                    }}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-full border border-slate-200/80 cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                    title="Account Menu & Settings"
+                    aria-haspopup="true"
+                    aria-expanded={showUserMenu}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-full text-white font-black text-xs flex items-center justify-center shadow-sm ${
+                        currentRole === 'seeker'
+                          ? 'bg-indigo-600'
+                          : currentRole === 'hr'
+                          ? 'bg-purple-600'
+                          : 'bg-rose-600'
+                      }`}
+                    >
+                      {userInitials}
+                    </div>
+                    <div className="text-left hidden sm:block">
+                      <p className="text-xs font-bold text-slate-800 leading-tight">
+                        {profile?.name || currentUser?.name || 'Account'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 leading-none capitalize">
+                        {currentRole === 'seeker' ? 'Candidate' : currentRole === 'hr' ? 'HR Recruiter' : 'Admin'}
+                      </p>
+                    </div>
+                    <svg
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                        showUserMenu ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
 
-              {/* User Account Dropdown Menu */}
-              {showUserMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                  ></div>
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-fade-in text-xs">
-                    <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 rounded-t-2xl">
-                      <div className="flex items-center gap-2.5 mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-full text-white font-black text-xs flex items-center justify-center shadow-sm shrink-0 ${
-                            currentRole === 'seeker'
-                              ? 'bg-indigo-600'
-                              : currentRole === 'hr'
-                              ? 'bg-purple-600'
-                              : 'bg-rose-600'
-                          }`}
-                        >
-                          {userInitials}
+                  {/* User Account Dropdown Menu */}
+                  {showUserMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowUserMenu(false)}
+                      ></div>
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-fade-in text-xs">
+                        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 rounded-t-2xl">
+                          <div className="flex items-center gap-2.5 mb-2">
+                            <div
+                              className={`w-8 h-8 rounded-full text-white font-black text-xs flex items-center justify-center shadow-sm shrink-0 ${
+                                currentRole === 'seeker'
+                                  ? 'bg-indigo-600'
+                                  : currentRole === 'hr'
+                                  ? 'bg-purple-600'
+                                  : 'bg-rose-600'
+                              }`}
+                            >
+                              {userInitials}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-slate-900 text-xs truncate">
+                                {profile?.name || currentUser?.name || 'Logged In User'}
+                              </p>
+                              <p className="text-slate-500 text-[10px] truncate">
+                                {profile?.email || currentUser?.email || 'user@example.com'}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              currentRole === 'seeker'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : currentRole === 'hr'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-rose-100 text-rose-700'
+                            }`}
+                          >
+                            {currentRole === 'seeker' ? 'Candidate Access' : currentRole === 'hr' ? 'HR Recruiter' : 'Super Admin'}
+                          </span>
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-extrabold text-slate-900 text-xs truncate">
-                            {profile?.name || currentUser?.name || 'Logged In User'}
-                          </p>
-                          <p className="text-slate-500 text-[10px] truncate">
-                            {profile?.email || currentUser?.email || 'user@example.com'}
-                          </p>
+
+                        <div className="py-1">
+                          {currentRole === 'seeker' && (
+                            <>
+                              <Link
+                                to="/profile"
+                                onClick={() => {
+                                  setSeekerTab?.('profile');
+                                  setShowUserMenu(false);
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
+                              >
+                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7 7z"></path>
+                                </svg>
+                                <span>My Profile & Resume</span>
+                              </Link>
+                              <Link
+                                to="/applications"
+                                onClick={() => {
+                                  setSeekerTab?.('applications');
+                                  setShowUserMenu(false);
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
+                              >
+                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <span>My Applications ({myApplicationsCount})</span>
+                              </Link>
+                            </>
+                          )}
+                          {currentRole === 'hr' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                if (onOpenEditProfile) onOpenEditProfile();
+                              }}
+                              className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
+                            >
+                              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              <span>Edit Company Profile</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="pt-1 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              if (onLogout) onLogout();
+                            }}
+                            className="w-full px-4 py-2 text-left text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2.5 transition group"
+                          >
+                            <svg className="w-4 h-4 text-rose-500 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span>Logout</span>
+                          </button>
                         </div>
                       </div>
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          currentRole === 'seeker'
-                            ? 'bg-indigo-100 text-indigo-700'
-                            : currentRole === 'hr'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-rose-100 text-rose-700'
-                        }`}
-                      >
-                        {currentRole === 'seeker' ? 'Candidate Access' : currentRole === 'hr' ? 'HR Recruiter' : 'Super Admin'}
-                      </span>
-                    </div>
+                    </>
+                  )}
+                </div>
 
-                    <div className="py-1">
-                      {currentRole === 'seeker' && (
-                        <>
-                          <Link
-                            to="/profile"
-                            onClick={() => {
-                              setSeekerTab?.('profile');
-                              setShowUserMenu(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
-                          >
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7 7z"></path>
-                            </svg>
-                            <span>My Profile & Resume</span>
-                          </Link>
-                          <Link
-                            to="/applications"
-                            onClick={() => {
-                              setSeekerTab?.('applications');
-                              setShowUserMenu(false);
-                            }}
-                            className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
-                          >
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                            </svg>
-                            <span>My Applications ({myApplicationsCount})</span>
-                          </Link>
-                        </>
-                      )}
-                      {currentRole === 'hr' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            if (onOpenEditProfile) onOpenEditProfile();
-                          }}
-                          className="w-full px-4 py-2 text-left text-slate-700 hover:bg-slate-50 font-semibold flex items-center gap-2.5 transition"
-                        >
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                          <span>Edit Company Profile</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="pt-1 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          if (onLogout) onLogout();
-                        }}
-                        className="w-full px-4 py-2 text-left text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2.5 transition group"
-                      >
-                        <svg className="w-4 h-4 text-rose-500 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Notifications Bell */}
-            <button
-              onClick={() => {
-                setShowNotifPanel(!showNotifPanel);
-                setShowMobileMenu(false);
-                setShowUserMenu(false);
-              }}
-              className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
-              title="Notifications"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-              </svg>
-              {notifications.length > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
-              )}
-            </button>
+                {/* Notifications Bell */}
+                <button
+                  onClick={() => {
+                    setShowNotifPanel(!showNotifPanel);
+                    setShowMobileMenu(false);
+                    setShowUserMenu(false);
+                  }}
+                  className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
+                  title="Notifications"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                  </svg>
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
+                  )}
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm shadow-indigo-600/30 shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Login</span>
+              </Link>
+            )}
 
             {/* Responsive Mobile Hamburger Menu Toggle Button */}
             {isLoggedIn && (

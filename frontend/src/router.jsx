@@ -27,10 +27,11 @@ export function BrowserRouter({ children }) {
       return;
     }
     const cleanTo = to.split('?')[0];
+    const navState = options && options.state !== undefined ? options.state : null;
     if (options && options.replace) {
-      window.history.replaceState(null, '', to);
+      window.history.replaceState(navState, '', to);
     } else {
-      window.history.pushState(null, '', to);
+      window.history.pushState(navState, '', to);
     }
     setPathname(cleanTo || '/');
   };
@@ -51,7 +52,12 @@ export function useNavigate() {
 
 export function useLocation() {
   const ctx = useContext(RouterContext);
-  return { pathname: ctx.pathname, search: window.location.search, hash: window.location.hash };
+  return {
+    pathname: ctx.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    state: typeof window !== 'undefined' ? window.history.state : null
+  };
 }
 
 export function useParams() {
@@ -68,13 +74,13 @@ export function useSearchParams() {
   return [search, setSearchParams];
 }
 
-export function Navigate({ to, replace }) {
+export function Navigate({ to, replace, state }) {
   const { navigate } = useContext(RouterContext);
   useEffect(() => {
     if (to) {
-      navigate(to, { replace: Boolean(replace) });
+      navigate(to, { replace: Boolean(replace), state });
     }
-  }, [to, replace]);
+  }, [to, replace, state]);
   return null;
 }
 

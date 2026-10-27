@@ -21,9 +21,11 @@ export function ExploreJobsTab({
   applications = [],
   profile,
   profileCompleteness = 0,
+  isLoggedIn = true,
   onToggleSave,
   onOpenJobDetail,
-  onRedirectToProfile
+  onRedirectToProfile,
+  onRequireLogin
 }) {
   return (
     <div>
@@ -283,9 +285,11 @@ export function ExploreJobsTab({
                     isSaved={isSaved}
                     hasApplied={hasApplied}
                     profileCompleteness={profileCompleteness}
+                    isLoggedIn={isLoggedIn}
                     onToggleSave={onToggleSave}
                     onOpenDetail={onOpenJobDetail}
                     onRedirectToProfile={onRedirectToProfile}
+                    onRequireLogin={onRequireLogin}
                   />
                 );
               })}

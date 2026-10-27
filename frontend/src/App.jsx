@@ -35,11 +35,15 @@ function getRoleHomePath(role) {
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { data } = useAuth();
+  const location = useLocation();
   const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
   const isLoggedIn = Boolean(token && data?.currentUser && data?.currentUser?.status !== 'Suspended');
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    if (typeof window !== 'undefined' && location.pathname && location.pathname !== '/login') {
+      sessionStorage.setItem('jobconnect_redirect', location.pathname);
+    }
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
   if (allowedRoles && allowedRoles.length > 0) {
@@ -72,30 +76,38 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
-function RoleRedirect() {
+function RootRouteDispatcher() {
   const { data } = useAuth();
   const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
   const isLoggedIn = Boolean(token && data?.currentUser && data?.currentUser?.status !== 'Suspended');
 
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+  if (isLoggedIn) {
+    const currentRole = getStandardRole(data);
+    if (currentRole === 'hr') return <Navigate to="/recruiter/dashboard" replace />;
+    if (currentRole === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
-  const currentRole = getStandardRole(data);
-  return <Navigate to={getRoleHomePath(currentRole)} replace />;
+  // When users open the website (`/`), show Candidate's Explore Jobs dashboard without forcing login
+  return <Navigate to="/dashboard" replace />;
 }
 
 function DashboardRouteDispatcher() {
   const { data } = useAuth();
-  const currentRole = getStandardRole(data);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('jobconnect_token') : null;
+  const isLoggedIn = Boolean(token && data?.currentUser && data?.currentUser?.status !== 'Suspended');
 
-  if (currentRole === 'hr') {
-    return <Navigate to="/recruiter/dashboard" replace />;
-  }
-  if (currentRole === 'admin') {
-    return <Navigate to="/admin/dashboard" replace />;
+  if (isLoggedIn) {
+    const currentRole = getStandardRole(data);
+    if (currentRole === 'hr') {
+      return <Navigate to="/recruiter/dashboard" replace />;
+    }
+    if (currentRole === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
   }
 
+  // Both logged-in Candidate and logged-out public visitors browse Explore Jobs without forced login
   return <Home initialTab="explore" />;
 }
 
@@ -115,17 +127,13 @@ export function App() {
             }
           />
 
-          {/* Root Route: Redirects to appropriate role dashboard */}
-          <Route path="/" element={<RoleRedirect />} />
+          {/* Root Route: Redirects to appropriate role dashboard (Candidate Explore Jobs for public visitors) */}
+          <Route path="/" element={<RootRouteDispatcher />} />
 
-          {/* Candidate / Job Seeker Routes */}
+          {/* Candidate / Job Seeker Routes: /dashboard is public for exploration */}
           <Route
             path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardRouteDispatcher />
-              </ProtectedRoute>
-            }
+            element={<DashboardRouteDispatcher />}
           />
           <Route
             path="/jobs"
@@ -209,7 +217,7 @@ export function App() {
           />
 
           {/* Wildcard Fallback */}
-          <Route path="*" element={<RoleRedirect />} />
+          <Route path="*" element={<RootRouteDispatcher />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

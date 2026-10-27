@@ -7,10 +7,12 @@ export function JobDetailModal({
   applications = [],
   profile,
   profileCompleteness = 0,
+  isLoggedIn = true,
   coverLetter,
   setCoverLetter,
   onApply,
-  onRedirectToProfile
+  onRedirectToProfile,
+  onRequireLogin
 }) {
   if (!job) return null;
 
@@ -84,7 +86,32 @@ export function JobDetailModal({
             </p>
           </div>
 
-          {hasApplied ? (
+          {!isLoggedIn ? (
+            <div className="border-t border-slate-100 pt-3">
+              <div className="p-3.5 sm:p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-indigo-900">
+                <div className="flex items-start sm:items-center gap-3">
+                  <span className="p-2 bg-indigo-100 text-indigo-700 rounded-xl font-bold text-sm shrink-0">💼</span>
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm">Sign in to Apply for this Vacancy</p>
+                    <p className="text-[11px] text-slate-600 mt-0.5 break-words">
+                      Please log in with your candidate account to submit your resume and application.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onRequireLogin) onRequireLogin({ type: 'apply', jobId: job.id });
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs transition shadow-md shadow-indigo-600/20 shrink-0 flex items-center justify-center gap-1.5 w-full sm:w-auto self-start sm:self-auto"
+                >
+                  <span>Apply Now</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          ) : hasApplied ? (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800">
               <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -159,7 +186,20 @@ export function JobDetailModal({
             Close
           </button>
           
-          {!hasApplied && (
+          {!isLoggedIn ? (
+            <button
+              onClick={() => {
+                onClose();
+                if (onRequireLogin) onRequireLogin({ type: 'apply', jobId: job.id });
+              }}
+              className="w-full sm:w-auto px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+              <span>Apply Now</span>
+            </button>
+          ) : !hasApplied && (
             profileCompleteness < 100 ? (
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                 <button

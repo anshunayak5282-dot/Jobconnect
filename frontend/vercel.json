@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 {
+=======
+
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+>>>>>>> 69d4a29db4c0a145d2db7206bf60ea64f9a60a3b
   "rewrites": [
     {
       "source": "/(.*)",

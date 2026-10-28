@@ -8,7 +8,6 @@ import { DemoCredentialsBar } from '../components/auth/DemoCredentialsBar';
 import { LoginForm } from '../components/auth/LoginForm';
 import { RegisterForm } from '../components/auth/RegisterForm';
 import { ToastContainer } from '../components/common/ToastContainer';
-import { getApiUrl, apiFetch } from '../services/api';
 
 export function Login() {
   const navigate = useNavigate();
@@ -154,7 +153,30 @@ export function Login() {
   };
 
   const apiCall = async (url, options = {}) => {
-    return await apiFetch(url, options);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok && contentType.includes('text/html')) {
+        throw new Error('Proxy returned HTML');
+      }
+      return response;
+    } catch (proxyErr) {
+      // Direct call fallback to backend port 5000
+      const directUrl = `http://localhost:5000${url.startsWith('/') ? url : `/${url}`}`;
+      return await fetch(directUrl, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+    }
   };
 
   const getPostLoginDestination = (targetRole) => {
@@ -432,7 +454,7 @@ export function Login() {
         applyDemoLogin('admin');
         return;
       }
-      showToast(`Backend connection error: Could not connect to API server. If the backend is waking up, please retry in a few seconds.`, 'error');
+      showToast(`Backend connection error: Could not connect to http://localhost:5000. Ensure the backend server is running.`, 'error');
       setIsSubmitting(false);
     }
   };

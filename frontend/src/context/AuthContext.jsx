@@ -6,7 +6,6 @@ const AuthContext = createContext();
 import { parseJwtPayload } from '../utils/jwtUtils';
 import { getProfileForUser, calculateProfileCompleteness } from '../utils/profileUtils';
 import { matchesJobId } from '../utils/jobUtils';
-import { getApiUrl, apiFetch } from '../services/api';
 
 export { calculateProfileCompleteness };
 
@@ -78,10 +77,13 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (!token) return;
 
-    apiFetch('/api/auth/me')
+    fetch('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(res => {
-        const contentType = res.headers.get('content-type') || '';
-        if (!res.ok || contentType.includes('text/html')) {
+        if (!res.ok) {
           throw new Error('Token verification failed');
         }
         return res.json();
@@ -167,14 +169,12 @@ export const AuthProvider = ({ children }) => {
     const role = data.currentUserRole || data.currentUser?.role;
     if (token) {
       if (role === 'admin') {
-        apiFetch('/api/users/profile-requests')
-          .then(res => {
-            const contentType = res.headers.get('content-type') || '';
-            if (!res.ok || contentType.includes('text/html')) return null;
-            return res.json();
-          })
+        fetch('/api/users/profile-requests', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
           .then(resData => {
-            if (resData && resData.success && Array.isArray(resData.data)) {
+            if (resData.success && Array.isArray(resData.data)) {
               setData(prev => ({
                 ...prev,
                 profileRequests: resData.data
@@ -183,14 +183,12 @@ export const AuthProvider = ({ children }) => {
           })
           .catch(() => {});
       } else if (role === 'hr') {
-        apiFetch('/api/users/profile-requests/my')
-          .then(res => {
-            const contentType = res.headers.get('content-type') || '';
-            if (!res.ok || contentType.includes('text/html')) return null;
-            return res.json();
-          })
+        fetch('/api/users/profile-requests/my', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.json())
           .then(resData => {
-            if (resData && resData.success && resData.data) {
+            if (resData.success && resData.data) {
               setData(prev => {
                 const existing = (prev.profileRequests || []).filter(r => r.id !== resData.data.id);
                 return {
@@ -210,13 +208,15 @@ export const AuthProvider = ({ children }) => {
   // Super Admin receives all jobs; HR receives approved + own jobs; Candidates receive approved jobs.
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await apiFetch('/api/jobs');
-      const contentType = res.headers.get('content-type') || '';
-      if (!res.ok || contentType.includes('text/html')) {
-        return;
+      const token = localStorage.getItem('jobconnect_token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+      const res = await fetch('/api/jobs', { headers });
+      if (!res.ok) return;
       const resData = await res.json();
-      if (resData && resData.success && Array.isArray(resData.data)) {
+      if (resData.success && Array.isArray(resData.data)) {
         setData(prev => {
           const dbJobs = resData.data;
           // Keep recent local optimistic jobs posted within the last 15s if not yet indexed in MySQL
@@ -264,9 +264,13 @@ export const AuthProvider = ({ children }) => {
         endpoint = '/api/applications';
       }
 
-      const res = await apiFetch(endpoint);
-      const contentType = res.headers.get('content-type') || '';
-      if (!res.ok || contentType.includes('text/html')) return;
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(endpoint, { headers });
+      if (!res.ok) return;
       const resData = await res.json();
 
       if (resData.success && Array.isArray(resData.data)) {
@@ -337,9 +341,10 @@ export const AuthProvider = ({ children }) => {
       if (!token || (role !== 'seeker' && role !== 'user' && data.currentUser?.role !== 'user')) {
         return;
       }
-      const res = await apiFetch('/api/jobs/saved/my');
-      const contentType = res.headers.get('content-type') || '';
-      if (!res.ok || contentType.includes('text/html')) return;
+      const res = await fetch('/api/jobs/saved/my', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
       const resData = await res.json();
       if (resData && resData.success && Array.isArray(resData.data)) {
         setData(prev => ({
@@ -361,9 +366,10 @@ export const AuthProvider = ({ children }) => {
       if (!token || (role !== 'admin' && data.currentUser?.role !== 'admin')) {
         return;
       }
-      const res = await apiFetch('/api/users');
-      const contentType = res.headers.get('content-type') || '';
-      if (!res.ok || contentType.includes('text/html')) return;
+      const res = await fetch('/api/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
       const resData = await res.json();
       if (resData && resData.success && Array.isArray(resData.data)) {
         setData(prev => ({
@@ -531,15 +537,19 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       const numericJobId = typeof jobId === 'string' ? jobId.replace('job-', '') : jobId;
       try {
-        const res = await apiFetch('/api/applications', {
+        const res = await fetch('/api/applications', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             jobId: numericJobId,
             coverLetter,
             resume: data.profile?.resumeName || 'Candidate_Resume.pdf'
           })
         });
-        const resData = await res.json().catch(() => null);
+        const resData = await res.json();
         if (!res.ok && resData && !resData.success) {
           showToast(resData.message || 'Complete your profile to 100% to apply for jobs.', 'error');
           return false;
@@ -571,8 +581,12 @@ export const AuthProvider = ({ children }) => {
         ? parseInt(jobId.replace('job-', ''), 10) || jobId
         : jobId;
       try {
-        await apiFetch(`/api/jobs/${encodeURIComponent(numericId)}/save`, {
-          method: 'POST'
+        await fetch(`/api/jobs/${encodeURIComponent(numericId)}/save`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
         fetchSavedJobs();
       } catch (e) {
@@ -617,8 +631,12 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch('/api/jobs', {
+        const res = await fetch('/api/jobs', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             title: jobData.title,
             company: jobData.company || hrCompany,
@@ -633,8 +651,8 @@ export const AuthProvider = ({ children }) => {
             deadline: jobData.deadline || '2026-12-31'
           })
         });
-        const resData = await res.json().catch(() => null);
-        if (resData && resData.success && resData.data) {
+        const resData = await res.json();
+        if (resData.success && resData.data) {
           const createdJob = resData.data;
           setData(prev => ({
             ...prev,
@@ -695,13 +713,17 @@ export const AuthProvider = ({ children }) => {
           ? parseInt(appId.replace('app-', ''), 10) || appId
           : appId;
 
-        const res = await apiFetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
+        const res = await fetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ status })
         });
 
-        const resData = await res.json().catch(() => null);
-        if (res.ok && resData && resData.success && resData.data) {
+        const resData = await res.json();
+        if (res.ok && resData.success && resData.data) {
           const updated = resData.data;
           // Synchronize authoritative updated row into state
           setData(prev => ({
@@ -755,11 +777,15 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch(`/api/jobs/${encodeURIComponent(numericId)}/approve`, {
-          method: 'PUT'
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/approve`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
-        const resData = await res.json().catch(() => null);
-        if (resData && resData.success && resData.data) {
+        const resData = await res.json();
+        if (resData.success && resData.data) {
           const updated = resData.data;
           setData(prev => ({
             ...prev,
@@ -788,11 +814,15 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch(`/api/jobs/${encodeURIComponent(numericId)}/reject`, {
-          method: 'PUT'
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/reject`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
-        const resData = await res.json().catch(() => null);
-        if (resData && resData.success && resData.data) {
+        const resData = await res.json();
+        if (resData.success && resData.data) {
           const updated = resData.data;
           setData(prev => ({
             ...prev,
@@ -843,8 +873,12 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch(`/api/jobs/${encodeURIComponent(numericId)}`, {
-          method: 'DELETE'
+        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
         const resData = await res.json().catch(() => null);
@@ -893,11 +927,15 @@ export const AuthProvider = ({ children }) => {
         const numericId = typeof userId === 'string' && userId.startsWith('u-')
           ? parseInt(userId.replace('u-', ''), 10) || userId
           : userId;
-        const res = await apiFetch(`/api/users/${encodeURIComponent(numericId)}/status`, {
-          method: 'PUT'
+        const res = await fetch(`/api/users/${encodeURIComponent(numericId)}/status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
-        const resData = await res.json().catch(() => null);
-        if (res.ok && resData && resData.success && resData.data) {
+        const resData = await res.json();
+        if (res.ok && resData.success && resData.data) {
           setData(prev => ({
             ...prev,
             users: (prev.users || []).map(u => 
@@ -966,12 +1004,16 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
         try {
-          const res = await apiFetch('/api/users/profile', {
+          const res = await fetch('/api/users/profile', {
             method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(updatedFields)
           });
-          const resData = await res.json().catch(() => null);
-          if (resData && resData.success && resData.data) {
+          const resData = await res.json();
+          if (resData.success && resData.data) {
             setData(prev => ({
               ...prev,
               profileRequests: [
@@ -1013,8 +1055,12 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        await apiFetch('/api/users/profile', {
+        await fetch('/api/users/profile', {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(updatedFields)
         });
       } catch (e) {
@@ -1065,8 +1111,12 @@ export const AuthProvider = ({ children }) => {
           let uploadSuccess = false;
 
           if (token) {
-            const res = await apiFetch('/api/users/resume', {
+            const res = await fetch('/api/users/resume', {
               method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
               body: JSON.stringify({
                 fileName,
                 fileSize: file.size,
@@ -1080,8 +1130,12 @@ export const AuthProvider = ({ children }) => {
               uploadSuccess = true;
             } else {
               // Fallback to update profile
-              const putRes = await apiFetch('/api/users/profile', {
+              const putRes = await fetch('/api/users/profile', {
                 method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                   resume_name: fileName,
                   resumeName: fileName
@@ -1221,14 +1275,20 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
-          method: 'PUT'
+        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
         if (res.ok) {
           fetchUsers();
-          const reqRes = await apiFetch('/api/users/profile-requests');
-          const reqData = await reqRes.json().catch(() => null);
-          if (reqData && reqData.success && Array.isArray(reqData.data)) {
+          const reqRes = await fetch('/api/users/profile-requests', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const reqData = await reqRes.json();
+          if (reqData.success && Array.isArray(reqData.data)) {
             setData(p => ({ ...p, profileRequests: reqData.data }));
           }
         }
@@ -1280,15 +1340,21 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await apiFetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
+        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
           method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({ reason })
         });
         if (res.ok) {
           fetchUsers();
-          const reqRes = await apiFetch('/api/users/profile-requests');
-          const reqData = await reqRes.json().catch(() => null);
-          if (reqData && reqData.success && Array.isArray(reqData.data)) {
+          const reqRes = await fetch('/api/users/profile-requests', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const reqData = await reqRes.json();
+          if (reqData.success && Array.isArray(reqData.data)) {
             setData(p => ({ ...p, profileRequests: reqData.data }));
           }
         }
@@ -1317,8 +1383,12 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ skills: updatedSkills })
         }).catch(() => {});
       }
@@ -1346,8 +1416,12 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ skills: updatedSkills })
         }).catch(() => {});
       }
@@ -1374,8 +1448,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ education: updatedEdu })
         }).catch(() => {});
       }
@@ -1399,8 +1474,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ education: updatedEdu })
         }).catch(() => {});
       }
@@ -1424,8 +1500,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ experience: updatedExp })
         }).catch(() => {});
       }
@@ -1449,8 +1526,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ experience: updatedExp })
         }).catch(() => {});
       }
@@ -1474,8 +1552,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ projects: updatedProj })
         }).catch(() => {});
       }
@@ -1499,8 +1578,9 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        apiFetch('/api/users/profile', {
+        fetch('/api/users/profile', {
           method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ projects: updatedProj })
         }).catch(() => {});
       }

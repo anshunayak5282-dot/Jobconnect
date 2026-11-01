@@ -21,6 +21,27 @@ export const jobService = {
     });
   },
 
+  // Recruiter: Delete own job posting
+  async deleteJob(jobId) {
+    const cleanId = String(jobId).replace('job-', '');
+    return apiClient(`/api/jobs/${encodeURIComponent(cleanId)}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Candidate: Bookmark / save a job
+  async saveJob(jobId) {
+    const cleanId = String(jobId).replace('job-', '');
+    return apiClient(`/api/jobs/${encodeURIComponent(cleanId)}/save`, {
+      method: 'POST'
+    });
+  },
+
+  // Candidate: Get saved jobs
+  async getSavedJobs() {
+    return apiClient('/api/jobs/saved/my', { method: 'GET' });
+  },
+
   // Super Admin: Approve job opening
   async approveJob(jobId) {
     const cleanId = String(jobId).replace('job-', '');

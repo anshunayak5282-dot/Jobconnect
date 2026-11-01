@@ -8,6 +8,7 @@ import { DemoCredentialsBar } from '../components/auth/DemoCredentialsBar';
 import { LoginForm } from '../components/auth/LoginForm';
 import { RegisterForm } from '../components/auth/RegisterForm';
 import { ToastContainer } from '../components/common/ToastContainer';
+import { apiClient } from '../services/apiClient';
 
 export function Login() {
   const navigate = useNavigate();
@@ -153,30 +154,7 @@ export function Login() {
   };
 
   const apiCall = async (url, options = {}) => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      });
-      const contentType = response.headers.get('content-type') || '';
-      if (!response.ok && contentType.includes('text/html')) {
-        throw new Error('Proxy returned HTML');
-      }
-      return response;
-    } catch (proxyErr) {
-      // Direct call fallback to backend port 5000
-      const directUrl = `http://localhost:5000${url.startsWith('/') ? url : `/${url}`}`;
-      return await fetch(directUrl, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      });
-    }
+    return apiClient(url, options);
   };
 
   const getPostLoginDestination = (targetRole) => {
@@ -454,7 +432,7 @@ export function Login() {
         applyDemoLogin('admin');
         return;
       }
-      showToast(`Backend connection error: Could not connect to http://localhost:5000. Ensure the backend server is running.`, 'error');
+      showToast(`Backend connection error: Could not connect to backend server. Ensure the backend server is running.`, 'error');
       setIsSubmitting(false);
     }
   };
@@ -546,7 +524,7 @@ export function Login() {
       setLoginRole(regRole === 'hr' ? 'hr' : 'seeker');
     } catch (err) {
       console.error('Registration error:', err);
-      showToast(`Database error: Cannot reach MySQL backend at http://localhost:5000. Please ensure the backend is running!`, 'error');
+      showToast(`Database error: Cannot reach MySQL backend. Please ensure the backend is running!`, 'error');
     } finally {
       setIsSubmitting(false);
     }

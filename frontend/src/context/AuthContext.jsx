@@ -6,6 +6,7 @@ const AuthContext = createContext();
 import { parseJwtPayload } from '../utils/jwtUtils';
 import { getProfileForUser, calculateProfileCompleteness } from '../utils/profileUtils';
 import { matchesJobId } from '../utils/jobUtils';
+import { apiClient } from '../services/apiClient';
 
 export { calculateProfileCompleteness };
 
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (!token) return;
 
-    fetch('/api/auth/me', {
+    apiClient('/api/auth/me', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -132,7 +133,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     const userEmail = data.currentUser?.email;
     if (token && userEmail) {
-      fetch(`/api/users/profile/${encodeURIComponent(userEmail)}`, {
+      apiClient(`/api/users/profile/${encodeURIComponent(userEmail)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -169,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     const role = data.currentUserRole || data.currentUser?.role;
     if (token) {
       if (role === 'admin') {
-        fetch('/api/users/profile-requests', {
+        apiClient('/api/users/profile-requests', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
           .then(res => res.json())
@@ -183,7 +184,7 @@ export const AuthProvider = ({ children }) => {
           })
           .catch(() => {});
       } else if (role === 'hr') {
-        fetch('/api/users/profile-requests/my', {
+        apiClient('/api/users/profile-requests/my', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
           .then(res => res.json())
@@ -213,7 +214,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const res = await fetch('/api/jobs', { headers });
+      const res = await apiClient('/api/jobs', { headers });
       if (!res.ok) return;
       const resData = await res.json();
       if (resData.success && Array.isArray(resData.data)) {
@@ -269,7 +270,7 @@ export const AuthProvider = ({ children }) => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const res = await fetch(endpoint, { headers });
+      const res = await apiClient(endpoint, { headers });
       if (!res.ok) return;
       const resData = await res.json();
 
@@ -341,7 +342,7 @@ export const AuthProvider = ({ children }) => {
       if (!token || (role !== 'seeker' && role !== 'user' && data.currentUser?.role !== 'user')) {
         return;
       }
-      const res = await fetch('/api/jobs/saved/my', {
+      const res = await apiClient('/api/jobs/saved/my', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -366,7 +367,7 @@ export const AuthProvider = ({ children }) => {
       if (!token || (role !== 'admin' && data.currentUser?.role !== 'admin')) {
         return;
       }
-      const res = await fetch('/api/users', {
+      const res = await apiClient('/api/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -537,7 +538,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       const numericJobId = typeof jobId === 'string' ? jobId.replace('job-', '') : jobId;
       try {
-        const res = await fetch('/api/applications', {
+        const res = await apiClient('/api/applications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -581,7 +582,7 @@ export const AuthProvider = ({ children }) => {
         ? parseInt(jobId.replace('job-', ''), 10) || jobId
         : jobId;
       try {
-        await fetch(`/api/jobs/${encodeURIComponent(numericId)}/save`, {
+        await apiClient(`/api/jobs/${encodeURIComponent(numericId)}/save`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -631,7 +632,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch('/api/jobs', {
+        const res = await apiClient('/api/jobs', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -713,7 +714,7 @@ export const AuthProvider = ({ children }) => {
           ? parseInt(appId.replace('app-', ''), 10) || appId
           : appId;
 
-        const res = await fetch(`/api/applications/${encodeURIComponent(numericId)}/status`, {
+        const res = await apiClient(`/api/applications/${encodeURIComponent(numericId)}/status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -777,7 +778,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/approve`, {
+        const res = await apiClient(`/api/jobs/${encodeURIComponent(numericId)}/approve`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -814,7 +815,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}/reject`, {
+        const res = await apiClient(`/api/jobs/${encodeURIComponent(numericId)}/reject`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -873,7 +874,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(numericId)}`, {
+        const res = await apiClient(`/api/jobs/${encodeURIComponent(numericId)}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -927,7 +928,7 @@ export const AuthProvider = ({ children }) => {
         const numericId = typeof userId === 'string' && userId.startsWith('u-')
           ? parseInt(userId.replace('u-', ''), 10) || userId
           : userId;
-        const res = await fetch(`/api/users/${encodeURIComponent(numericId)}/status`, {
+        const res = await apiClient(`/api/users/${encodeURIComponent(numericId)}/status`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1004,7 +1005,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
         try {
-          const res = await fetch('/api/users/profile', {
+          const res = await apiClient('/api/users/profile', {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -1055,7 +1056,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        await fetch('/api/users/profile', {
+        await apiClient('/api/users/profile', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1111,7 +1112,7 @@ export const AuthProvider = ({ children }) => {
           let uploadSuccess = false;
 
           if (token) {
-            const res = await fetch('/api/users/resume', {
+            const res = await apiClient('/api/users/resume', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1130,7 +1131,7 @@ export const AuthProvider = ({ children }) => {
               uploadSuccess = true;
             } else {
               // Fallback to update profile
-              const putRes = await fetch('/api/users/profile', {
+              const putRes = await apiClient('/api/users/profile', {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1275,7 +1276,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
+        const res = await apiClient(`/api/users/profile-requests/${encodeURIComponent(requestId)}/approve`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1284,7 +1285,7 @@ export const AuthProvider = ({ children }) => {
         });
         if (res.ok) {
           fetchUsers();
-          const reqRes = await fetch('/api/users/profile-requests', {
+          const reqRes = await apiClient('/api/users/profile-requests', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const reqData = await reqRes.json();
@@ -1340,7 +1341,7 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('jobconnect_token');
     if (token) {
       try {
-        const res = await fetch(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
+        const res = await apiClient(`/api/users/profile-requests/${encodeURIComponent(requestId)}/reject`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1350,7 +1351,7 @@ export const AuthProvider = ({ children }) => {
         });
         if (res.ok) {
           fetchUsers();
-          const reqRes = await fetch('/api/users/profile-requests', {
+          const reqRes = await apiClient('/api/users/profile-requests', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const reqData = await reqRes.json();
@@ -1383,7 +1384,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1416,7 +1417,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1448,7 +1449,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ education: updatedEdu })
@@ -1474,7 +1475,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ education: updatedEdu })
@@ -1500,7 +1501,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ experience: updatedExp })
@@ -1526,7 +1527,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ experience: updatedExp })
@@ -1552,7 +1553,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ projects: updatedProj })
@@ -1578,7 +1579,7 @@ export const AuthProvider = ({ children }) => {
 
       const token = localStorage.getItem('jobconnect_token');
       if (token) {
-        fetch('/api/users/profile', {
+        apiClient('/api/users/profile', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ projects: updatedProj })

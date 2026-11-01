@@ -1,6 +1,21 @@
 import { apiClient } from './apiClient';
 
 export const userService = {
+  // Super Admin: Fetch all users
+  async getUsers() {
+    return apiClient('/api/users', {
+      method: 'GET'
+    });
+  },
+
+  // Super Admin: Toggle user active / suspended status
+  async toggleUserStatus(userId) {
+    const cleanId = String(userId).replace('u-', '');
+    return apiClient(`/api/users/${encodeURIComponent(cleanId)}/status`, {
+      method: 'PUT'
+    });
+  },
+
   // Fetch user profile by email from MySQL
   async getUserProfile(email) {
     return apiClient(`/api/users/profile/${encodeURIComponent(email)}`, {
